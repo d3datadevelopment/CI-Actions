@@ -32,7 +32,8 @@ uses: d3datadevelopment/ci-actions/<action-name>@v1
   - OXID Shop installieren & konfigurieren
   - Theme aktivieren (falls unterstützt)
   - Plugin installieren & aktivieren
-  - PHPUnit installieren und Tests ausführen (wenn phpunit.xml im Checkout vorhanden)
+  - PHPStan installieren und ausführen (wenn Konfigurationsdatei vorhanden ist)
+  - PHPUnit installieren und Tests ausführen (wenn phpunit.xml im Checkout vorhanden ist)
 
 #### Inputs
 
@@ -79,7 +80,8 @@ Führt Tests für reine Composer-Pakete aus (ohne OXID).
 - PHP einrichten
 - Composer Dependencies installieren
 - optional PHP Syntax-Check
-- PHPUnit Tests ausführen (wenn phpunit.xml im Checkout vorhanden)
+- PHPStan ausführen (wenn Konfigurationsdatei vorhanden ist)
+- PHPUnit Tests ausführen (wenn phpunit.xml im Checkout vorhanden ist)
 
 #### Inputs
 | Name               | Typ    | Pflicht | Beschreibung                          | Beispiel           |
@@ -129,6 +131,25 @@ Sendet einen CI-Status an einen beliebigen HTTP-Endpunkt.
 ## Beispiele
 
 Schaue in [CI Tests](https://github.com/d3datadevelopment/CI-Tests) für Integrationsbeispiele.
+
+## Hinweise
+
+### PHPStan
+
+Für CI Runs von OXID Modulen werden diese via Symlink in den Shop eingebunden. Beachten Sie, in Ihrer PHPStan 
+Konfiguration alle zu prüfenden (Root-)Ordner und Dateien explizit anzugeben. Globale Angaben (z.B. '.') kann 
+durch die Verwendung von Symlinks zu Endlosschleifen führen.
+
+```
+parameters:
+  paths: 
+    - Core
+    - ...
+
+  scanFiles:
+    - Context.php
+    - ...
+```
 
 ## Selbsttests
 
