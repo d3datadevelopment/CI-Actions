@@ -35,6 +35,10 @@ inputs:
     description: "Comma separated list of test suites (e.g. unit,integration). If empty, run all tests."
     required: false
 
+  debug:
+    required: false
+    default: "false"
+
 runs:
   using: "composite"
   steps:
@@ -209,6 +213,8 @@ runs:
       if: ${{ hashFiles('phpstan.neon', 'phpstan.neon.dist') != '' }}
       working-directory: shop
       run: |
+        set +o pipefail
+
         if [[ -f vendor/${{ inputs.composer_package_name }}/phpstan.neon ]]; then
           CONFIG="vendor/${{ inputs.composer_package_name }}/phpstan.neon"
         elif [[ -f vendor/${{ inputs.composer_package_name }}/phpstan.neon.dist ]]; then
@@ -218,10 +224,24 @@ runs:
           exit 0
         fi
 
-        vendor/bin/phpstan analyse \
-          --configuration="$CONFIG" \
-          --no-progress \
-          --quiet
+        if [ "${{ inputs.debug }}" = "true" ] || [ "${{ inputs.debug }}" = "1" ]; then
+          OUTPUT_FILE=phpstan.log
+          vendor/bin/phpstan analyse \
+            --configuration="$CONFIG" \
+            --no-progress \
+            --error-format=raw \
+            >"$OUTPUT_FILE" 2>&1 || PHPSTAN_EXIT=$?
+          echo "---- PHPStan output ----"
+          cat "$OUTPUT_FILE"
+        else
+          vendor/bin/phpstan analyse \
+            --configuration="$CONFIG" \
+            --no-progress \
+            --quiet \
+            2>&1 || PHPSTAN_EXIT=$?
+        fi
+
+        exit ${PHPSTAN_EXIT:-0}
 
     - name: Install PHPUnit
       shell: bash

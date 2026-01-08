@@ -14,6 +14,10 @@ inputs:
     description: "Comma separated list of test suites (e.g. unit,integration). If empty, run all tests."
     required: false
 
+  debug:
+    required: false
+    default: "false"
+
 runs:
   using: "composite"
   steps:
@@ -57,9 +61,24 @@ runs:
       shell: bash
       if: ${{ hashFiles('phpstan.neon', 'phpstan.neon.dist') != '' }}
       run: |
-        vendor/bin/phpstan analyse \
-          --no-progress \
-          --quiet
+        set +o pipefail
+
+        if [ "${{ inputs.debug }}" = "true" ] || [ "${{ inputs.debug }}" = "1" ]; then
+          OUTPUT_FILE=phpstan.log
+          vendor/bin/phpstan analyse \
+            --no-progress \
+            --error-format=raw \
+            >"$OUTPUT_FILE" 2>&1 || PHPSTAN_EXIT=$?
+          echo "---- PHPStan output ----"
+          cat "$OUTPUT_FILE"
+        else
+          vendor/bin/phpstan analyse \
+            --no-progress \
+            --quiet \
+            2>&1 || PHPSTAN_EXIT=$?
+        fi
+
+        exit ${PHPSTAN_EXIT:-0}
 
     - name: Run PHPUnit
       shell: bash
