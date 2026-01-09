@@ -57,6 +57,11 @@ runs:
       run: |
         composer install --no-interaction --prefer-dist
 
+    - name: Allow all plugins
+      shell: bash
+      run: |
+        composer config allow-plugins true
+
     - name: Run PHPStan
       shell: bash
       if: ${{ hashFiles('phpstan.neon', 'phpstan.neon.dist') != '' }}

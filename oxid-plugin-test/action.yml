@@ -124,6 +124,12 @@ runs:
       run: |
         composer create-project oxid-esales/oxideshop-project shop "${{ inputs.oxid_ref }}" --no-interaction --no-security-blocking
 
+    - name: Allow all plugins
+      shell: bash
+      working-directory: shop
+      run: |
+        composer config allow-plugins true
+
     - name: Install OXID dependencies
       shell: bash
       working-directory: shop
