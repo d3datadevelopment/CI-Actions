@@ -15,10 +15,154 @@ inputs:
     required: false
     default: "false"
 
+  node_version:
+    description: "Node.js version to use"
+    required: false
+    default: "16"
+
+  asset_extensions:
+    description: "Pipe-separated list of asset file extensions (without separator)"
+    required: false
+    default: "scss|sass|less"
+
+  workdir:
+    description: "Working directory for build commands"
+    required: false
+    default: "build"
+
+  grunt_alias:
+    description: "Alias name for the Grunt job"
+    required: false
+    default: "production"
+
+  grunt_file:
+    description: "Name of the Gruntfile"
+    required: false
+    default: "Gruntfile.js"
+
+  git_user_name:
+    description: "Git user name for CI commits"
+    required: false
+    default: "ci-bot"
+
+  git_user_email:
+    description: "Git user email for CI commits"
+    required: false
+    default: "ci-bot@no-reply.local"
+
+outputs:
+  assets_changed:
+    description: "Whether asset build should run"
+    value: ${{ steps.decide.outputs.changed }}
+
 runs:
   using: "composite"
   steps:
-    - name: Placeholder
+    # --- Detect -------------------------------------------------
+
+    - name: Detect CI commit
+      id: skip
       shell: bash
       run: |
-        echo "Asset Pipeline composite action initialized"
+        COMMIT_MSG=$(git log -1 --pretty=%B)
+        if echo "$COMMIT_MSG" | grep -q "\[ci\]"; then
+          echo "skip=true" >> $GITHUB_OUTPUT
+        else
+          echo "skip=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Detect asset file changes
+      id: assets
+      if: steps.skip.outputs.skip == 'false'
+      shell: bash
+      run: |
+        EXTENSIONS="${{ inputs.asset_extensions }}"
+        echo "Detecting asset extensions: $EXTENSIONS"
+
+        CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -E "\.(${EXTENSIONS})$" || true)
+
+        if [ -z "$CHANGED" ]; then
+          echo "changed=false" >> $GITHUB_OUTPUT
+        else
+          echo "changed=true" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Decide whether assets_changed
+      id: decide
+      shell: bash
+      run: |
+        if [ "${{ inputs.force }}" = "true" ]; then
+          echo "changed=true" >> $GITHUB_OUTPUT
+        elif [ "${{ steps.skip.outputs.skip }}" = "false" ] && [ "${{ steps.assets.outputs.changed }}" = "true" ]; then
+          echo "changed=true" >> $GITHUB_OUTPUT
+        else
+          echo "changed=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Log decision
+      shell: bash
+      run: |
+        echo "=== Asset Pipeline Decision ==="
+        echo "force:           ${{ inputs.force }}"
+        echo "ci commit:       ${{ steps.skip.outputs.skip }}"
+        echo "asset changed:   ${{ steps.assets.outputs.changed }}"
+        echo "will build:      ${{ steps.decide.outputs.changed }}"
+
+    # --- Build --------------------------------------------------
+
+    - name: Setup Node
+      if: steps.decide.outputs.changed == 'true'
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node_version }}
+
+    - name: Install dependencies
+      if: steps.decide.outputs.changed == 'true'
+      shell: bash
+      working-directory: ${{ inputs.workdir }}
+      run: |
+        set -e
+        npm ci
+
+    - name: Run Grunt (production)
+      if: steps.decide.outputs.changed == 'true'
+      shell: bash
+      working-directory: ${{ inputs.workdir }}
+      run: |
+        set -e
+        npx grunt ${{ inputs.grunt_alias }} --gruntfile ${{ inputs.grunt_file }}
+
+    # --- Commit -------------------------------------------------
+
+    - name: Configure git (CI bot)
+      if: steps.decide.outputs.changed == 'true'
+      shell: bash
+      run: |
+        git config user.name "${{ inputs.git_user_name }}"
+        git config user.email "${{ inputs.git_user_email }}"
+
+    - name: Commit and push compiled assets
+      if: steps.decide.outputs.changed == 'true'
+      shell: bash
+      run: |
+        REPO_URL="${{ inputs.repo_url }}"
+        PUSH_TOKEN="${{ inputs.push_token }}"
+
+        GITEA_PUSH_URL="${REPO_URL}.git"
+        AUTH_GITEA_URL=$(echo "$GITEA_PUSH_URL" | sed "s#https://#https://${PUSH_TOKEN}@#")
+
+        if git remote | grep -q "^gitea$"; then
+          git remote set-url gitea "$AUTH_GITEA_URL"
+        else
+          git remote add gitea "$AUTH_GITEA_URL"
+        fi
+
+        git add -A public/css
+
+        if git diff --cached --quiet; then
+          echo "No asset changes to commit"
+          exit 0
+        fi
+
+        git commit -m "build(assets): update compiled assets [ci]"
+        git push gitea ${GITHUB_REF_NAME}
