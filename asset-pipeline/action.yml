@@ -1,0 +1,24 @@
+name: Asset Pipeline
+description: Build and commit frontend assets via Grunt
+
+inputs:
+  repo_url:
+    description: "Base repository URL (e.g. https://git.d3data.de/OWNER/REPO)"
+    required: true
+    
+  push_token:
+    description: "source repository push token"
+    required: true
+
+  force:
+    description: "Force asset rebuild"
+    required: false
+    default: "false"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Placeholder
+      shell: bash
+      run: |
+        echo "Asset Pipeline composite action initialized"
