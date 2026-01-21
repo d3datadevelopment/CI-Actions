@@ -138,7 +138,7 @@ Startet einen vordefinierten Grunt Task, um Assets zu erstellen. Generierte Inha
 | repo_url         | string | ja      | Repository-URL (ohne .git)                                           | "https://git.mydomain.example/..." |
 | push_token       | string | ja      | Token mit Push-Berechtigung im Remote Repo                           | "abcdef"                           |
 | node_version     | string | nein    | verwendete Version von Node.js                                       | "16"                               |
-| asset_extensions | string | nein    | auf Änderungen geprüfte Dateiendungen                                | "scss|sass|less"                   |
+| asset_extensions | string | nein    | auf Änderungen geprüfte Dateiendungen                                | "scss,sass,less"                   |
 | workdir          | string | nein    | Verzeichnis, in dem build-Struktur enthalten ist                     | "build"                            |
 | grunt_alias      | string | nein    | Alias des aufrurufenden Grunt Jobs                                   | "production"                       |
 | grunt_file       | string | nein    | Dateiname der verwendeten Grunt-Datei                                | "Gruntfile.js"                     |

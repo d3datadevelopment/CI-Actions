@@ -21,9 +21,9 @@ inputs:
     default: "16"
 
   asset_extensions:
-    description: "Pipe-separated list of asset file extensions (without separator)"
+    description: "comma-separated list of asset file extensions (without separator)"
     required: false
-    default: "scss|sass|less"
+    default: "scss,sass,less"
 
   workdir:
     description: "Working directory for build commands"
@@ -84,7 +84,7 @@ runs:
         set -x
 
         EXTENSIONS="${{ inputs.asset_extensions }}"
-        EXTENSIONS=$(echo "$EXTENSIONS" | sed 's/\.//g')
+        EXTENSIONS=$(echo "$EXTENSIONS" | sed 's/\.//g' | sed 's/,/|/g')
         echo "Detecting asset extensions: $EXTENSIONS"
 
         LAST_CI_COMMIT=$(git log --grep="\[ci\]" --pretty=format:%H -n 1 || true)
