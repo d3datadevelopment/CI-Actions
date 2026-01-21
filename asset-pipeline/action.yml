@@ -76,18 +76,38 @@ runs:
       if: steps.skip.outputs.skip == 'false'
       shell: bash
       run: |
+        set -x
+
         EXTENSIONS="${{ inputs.asset_extensions }}"
+        EXTENSIONS=$(echo "$EXTENSIONS" | sed 's/\.//g')
         echo "Detecting asset extensions: $EXTENSIONS"
 
-        CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -E "\.(${EXTENSIONS})$" || true)
+        LAST_CI_COMMIT=$(git log --grep="\[ci\]" --pretty=format:%H -n 1 || true)
+        
+        if [ -n "$LAST_CI_COMMIT" ]; then
+          DIFF_RANGE="$LAST_CI_COMMIT..HEAD"
+          echo "Using diff range since last CI commit: $DIFF_RANGE"
+        else
+          DIFF_RANGE="HEAD"
+          echo "No CI commit found, using full diff"
+        fi
+        
+        ALL_CHANGED=$(git diff --name-only $DIFF_RANGE || true)
+        echo "Changed files:"
+        echo "$ALL_CHANGED"
 
+        CHANGED=$(echo "$ALL_CHANGED" | grep -E "\.(${EXTENSIONS})$" || true)
+
+        echo "Asset-related changes:"
+        echo "$CHANGED"
+        
         if [ -z "$CHANGED" ]; then
           echo "changed=false" >> $GITHUB_OUTPUT
         else
           echo "changed=true" >> $GITHUB_OUTPUT
         fi
 
-    - name: Decide whether assets_changed
+    - name: Decide whether to start the construction process
       id: decide
       shell: bash
       run: |
