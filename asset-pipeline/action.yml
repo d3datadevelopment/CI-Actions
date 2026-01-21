@@ -84,7 +84,10 @@ runs:
         set -x
 
         EXTENSIONS="${{ inputs.asset_extensions }}"
-        EXTENSIONS=$(echo "$EXTENSIONS" | sed 's/\.//g' | sed 's/,/|/g')
+        EXTENSIONS=$(echo "$EXTENSIONS" \
+          | tr -d '[:space:]' \
+          | sed 's/\.//g' \
+          | sed 's/,/|/g')
         echo "Detecting asset extensions: $EXTENSIONS"
 
         LAST_CI_COMMIT=$(git log --grep="\[ci\]" --pretty=format:%H -n 1 || true)
