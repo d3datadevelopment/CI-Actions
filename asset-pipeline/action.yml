@@ -90,6 +90,12 @@ runs:
           | sed 's/,/|/g')
         echo "Detecting asset extensions: $EXTENSIONS"
 
+        if [ -z "$EXTENSIONS" ]; then
+          echo "No asset extensions configured – skipping asset detection"
+          echo "changed=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
         LAST_CI_COMMIT=$(git log --grep="\[ci\]" --pretty=format:%H -n 1 || true)
         
         if [ -n "$LAST_CI_COMMIT" ]; then
