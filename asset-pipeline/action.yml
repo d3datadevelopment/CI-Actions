@@ -50,6 +50,11 @@ inputs:
     required: false
     default: "ci-bot@no-reply.local"
 
+  target_dir:
+    description: "Grunt target directory, which may only be committed"
+    required: false
+    default: "assets"
+
 outputs:
   assets_changed:
     description: "Whether asset build should run"
@@ -177,7 +182,7 @@ runs:
           git remote add gitea "$AUTH_GITEA_URL"
         fi
 
-        git add -A public/css
+        git add -A ${{ inputs.target_dir }}
 
         if git diff --cached --quiet; then
           echo "No asset changes to commit"

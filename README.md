@@ -133,17 +133,18 @@ Sendet einen CI-Status an einen beliebigen HTTP-Endpunkt.
 Startet einen vordefinierten Grunt Task, um Assets zu erstellen. Generierte Inhalte werden ins Repository committed.
 
 #### Inputs
-| Name             | Typ    | Pflicht | Beschreibung                                     | Beispiel                           |
-|------------------|--------|---------|--------------------------------------------------|------------------------------------|
-| repo_url         | string | ja      | Repository-URL (ohne .git)                       | "https://git.mydomain.example/..." |
-| push_token       | string | ja      | Token mit Push-Berechtigung im Remote Repo       | "abcdef"                           |
-| node_version     | string | nein    | verwendete Version von Node.js                   | "16"                               |
-| asset_extensions | string | nein    | auf Änderungen geprüfte Dateiendungen            | "scss|sass|less"                   |
-| workdir          | string | nein    | Verzeichnis, in dem build-Struktur enthalten ist | "build"                            |
-| grunt_alias      | string | nein    | Alias des aufrurufenden Grunt Jobs               | "production"                       |
-| grunt_file       | string | nein    | Dateiname der verwendeten Grunt-Datei            | "Gruntfile.js"                     |
-| git_user_name    | string | nein    | Name des committenden git Benutzers              | "ci-bot"                           |
-| git_user_email   | string | nein    | Mail Adresse des committenden git Benutzers      | "ci-bot@no-reply.local"            |
+| Name             | Typ    | Pflicht | Beschreibung                                                         | Beispiel                           |
+|------------------|--------|---------|----------------------------------------------------------------------|------------------------------------|
+| repo_url         | string | ja      | Repository-URL (ohne .git)                                           | "https://git.mydomain.example/..." |
+| push_token       | string | ja      | Token mit Push-Berechtigung im Remote Repo                           | "abcdef"                           |
+| node_version     | string | nein    | verwendete Version von Node.js                                       | "16"                               |
+| asset_extensions | string | nein    | auf Änderungen geprüfte Dateiendungen                                | "scss|sass|less"                   |
+| workdir          | string | nein    | Verzeichnis, in dem build-Struktur enthalten ist                     | "build"                            |
+| grunt_alias      | string | nein    | Alias des aufrurufenden Grunt Jobs                                   | "production"                       |
+| grunt_file       | string | nein    | Dateiname der verwendeten Grunt-Datei                                | "Gruntfile.js"                     |
+| git_user_name    | string | nein    | Name des committenden git Benutzers                                  | "ci-bot"                           |
+| git_user_email   | string | nein    | Mail Adresse des committenden git Benutzers                          | "ci-bot@no-reply.local"            |
+| target_dir       | string | nein    | Grunt Zielverzeichnis, welches ausschließlich übertragen werden darf | "assets"                           |
 
 #### Beispiele
 
@@ -168,6 +169,7 @@ name: Asset Pipeline
     grunt_file: "Gruntfile.js"
     git_user_name: "asset-bot"
     git_user_email: "asset-bot@example.com"
+    target_dir: "assets"
 ```
 
 ## Beispiele
