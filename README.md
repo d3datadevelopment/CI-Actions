@@ -1,6 +1,6 @@
-# D3 CI Actions
+# D3 Github Composite Actions
 
-Zentrale Sammlung wiederverwendbarer GitHub Composite Actions für CI-Pipelines.
+Zentrale Sammlung wiederverwendbarer GitHub Composite Actions
 
 Ziel dieses Repositories ist es, CI-Logik zu standardisieren, Copy-Paste zu vermeiden und Workflows in Projekt-Repositories schlank zu halten.
 
@@ -16,140 +16,38 @@ Dieses Repository verwendet semantische Versionierung über Git-Tags.
 Empfohlene Nutzung in Projekten:
 
 ```
-uses: d3datadevelopment/ci-actions/<action-name>@v1
+uses: d3datadevelopment/ci-actions/<action-name>@v1.0
 ```
 
 `v1` zeigt immer auf die aktuelle stabile Version der Major-Reihe. In `rel_X.x` befindet sich die aktuellste Pre-Release Version.
 
 ## Enthaltene Actions
-### oxid-test-runner
-  Führt OXID Plugin Tests in einer reproduzierbaren Umgebung aus. Verfügbar für Plugins ab OXID 7.0.
 
-#### Tasks
-  - PHP einrichten
-  - optional SourceGuardian aktivieren
-  - optional PHP Syntax-Check
-  - OXID Shop installieren & konfigurieren
-  - Theme aktivieren (falls unterstützt)
-  - Plugin installieren & aktivieren
-  - PHPStan installieren und ausführen (wenn Konfigurationsdatei vorhanden ist)
-  - PHPUnit installieren und Tests ausführen (wenn phpunit.xml im Checkout vorhanden ist)
+### für CI-Pipelines
 
-#### Inputs
+#### composer-package-test-runner
 
-| Name                  | Typ    | Pflicht | Beschreibung                          | Beispiel           |
-|-----------------------|--------|---------|---------------------------------------|--------------------|
-| php_version           | string | ja      | PHP-Version                           | "8.0"              |
-| oxid_ref              | string | ja      | OXID Version                          | "dev-b-7.4-ce"     |
-| phpunit_version       | string | ja      | PHPUnit Version                       | "^9.0"             |
-| sourceguardian        | bool   | nein    | SourceGuardian aktivieren             | "true"             |
-| composer_package_name | string | ja      | Composer Package Name                 | "d3/mypackage"     |
-| oxid_module_id        | string | nein    | OXID Module ID zur Aktivierung        | "d3mymodule"       |
-| test_suites           | string | nein    | kommagetrennte PHPUnit Suites         | "unit,integration" |
-| syntax_check_paths    | string | nein    | kommagetrennte Pfade für Syntax-Check | "src,tests"        |
+Dies ist eine wiederverwendbare Composite GitHub Action zur Durchführung typischer Qualitäts- und Testschritte für **generische PHP-/Composer-Pakete**.
+Sie richtet sich an Teams und Agenturen, die **bibliotheksartige Pakete** (Framework-unabhängig oder Framework-nah) mit einem reproduzierbaren, wartbaren CI-Setup absichern wollen.
 
-#### Erwartete ENV-Variablen
+Weitere Infos [hier](./composer-package-test/README.md).
 
-Diese müssen vom Workflow gesetzt werden:
+#### oxid-test-runner
+**OXID Plugin Test** ist eine umfangreiche Composite GitHub Action zur automatisierten Qualitätssicherung von **OXID eShop Modulen** in einer realistischen Shop-Umgebung.
+Sie bildet einen vollständigen OXID-Installations- und Testlauf nach und eignet sich damit besonders für **Agenturen, Modulhersteller und Enterprise-Setups**, die Plugins versions- und PHP-abhängig absichern müssen.
 
-- DB_HOST
-- DB_NAME
-- DB_USER
-- DB_PASS
-- DB_PORT (optional, Default 3306)
+Weitere Infos [hier](./oxid-plugin-test/README.md).
 
-#### Beispiel
+#### commit-status-reporter – Status an beliebige APIs melden
 
-```
-- name: Run OXID plugin tests
-  uses: d3datadevelopment/ci-actions/oxid-plugin-test@v1
-  with:
-    php_version: "8.2"
-    oxid_ref: "dev-b-7.1-ce"
-    phpunit_version: "^10"
-    composer_package_name: "d3/mailconfigchecker"
-    oxid_module_id: "d3mailconfigchecker"
-    test_suites: "unit,integration"
-    syntax_check_paths: "src,tests"
-```
-### composer-package-test-runner
+Der Status Reporter ist eine schlanke Composite GitHub Action zur Übermittlung von CI-Statusinformationen an ein externes, generisches API-Endpoint.
+Sie eignet sich insbesondere für Setups, in denen Build- und Deployment-Status nicht (oder nicht ausschließlich) über GitHub Commit Statuses, sondern über eigene Systeme, Dashboards oder Meta-CI-Infrastrukturen verarbeitet werden.
 
-Führt Tests für reine Composer-Pakete aus (ohne OXID).
-
-#### Tasks
-- PHP einrichten
-- Composer Dependencies installieren
-- optional PHP Syntax-Check
-- PHPStan ausführen (wenn Konfigurationsdatei vorhanden ist)
-- PHPUnit Tests ausführen (wenn phpunit.xml im Checkout vorhanden ist)
-
-#### Inputs
-| Name               | Typ    | Pflicht | Beschreibung                          | Beispiel           |
-|--------------------|--------|---------|---------------------------------------|--------------------|
-| php_version        | string | ja      | PHP-Version                           | "8.4"              |
-| test_suites        | string | nein    | PHPUnit Testsuites (kommagetrennt)    | "unit,integration" |
-| syntax_check_paths | string | nein    | kommagetrennte Pfade für Syntax-Check | "src,tests"        |
-
-#### Beispiel
-
-```
-- name: Run package tests
-  uses: d3datadevelopment/ci-actions/composer-package-test@v1
-  with:
-    php_version: "8.2"
-    syntax_check_paths: "src,Tests"
-    test_suites: "unit,integration"
-```
-
-### commit-status-reporter
-
-Sendet einen CI-Status an einen beliebigen HTTP-Endpunkt.
-
-#### Inputs
-| Name            | Typ    | Pflicht | Beschreibung                        | Beispiel                        |
-|-----------------|--------|---------|-------------------------------------|---------------------------------|
-| status_endpoint | string | ja      | Vollständige API-URL                | "https://example.org/statuses/" |
-| auth_token      | string | ja      | Auth-Token (via Repository Secrets) | "abcdef"                        |
-| state           | string | ja      | Ausführungsstatus                   | "success", "failure", ...       |
-| context         | string | nein    | Status-Kontext                      | "ci/github"                     |
-| description     | string | nein    | Beschreibung                        | "CI passed"                     |
-| target_url      | string | nein    | Workflow URL mit Build-Details      |                                 |
-
-#### Beispiel
-
-```
-- name: Report CI status
-  uses: d3datadevelopment/ci-actions/status-reporter@v1
-  with:
-    status_endpoint: https://example.org/statuses/${{ github.sha }}
-    auth_token: ${{ secrets.STATUS_TOKEN }}
-    state: success
-    description: "CI passed"
-    target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-```
+Weitere Infos [hier](./status-reporter/README.md).
 
 ## Beispiele
 
 Schaue in [CI Tests](https://github.com/d3datadevelopment/CI-Tests) für Integrationsbeispiele.
-
-## Hinweise
-
-### PHPStan
-
-Für CI Runs von OXID Modulen werden diese via Symlink in den Shop eingebunden. Beachten Sie, in Ihrer PHPStan 
-Konfiguration alle zu prüfenden (Root-)Ordner und Dateien explizit anzugeben. Globale Angaben (z.B. '.') kann 
-durch die Verwendung von Symlinks zu Endlosschleifen führen.
-
-```
-parameters:
-  paths: 
-    - Core
-    - ...
-
-  scanFiles:
-    - Context.php
-    - ...
-```
 
 ## Selbsttests
 
