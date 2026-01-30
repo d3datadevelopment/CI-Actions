@@ -48,6 +48,20 @@ Sie eignet sich insbesondere für Setups, in denen Build- und Deployment-Status 
 
 Weitere Infos [hier](./status-reporter/README.md).
 
+### build-docs - HTML-Dokumentation aus Markdown erzeugen
+
+**Build MkDocs Documentation** ist eine schlanke Composite GitHub Action zum **Erzeugen statischer HTML-Dokumentation** auf Basis von Markdown-Dateien mit **MkDocs und dem Material Theme**.
+Sie ist bewusst auf den **Build-Schritt** fokussiert und eignet sich als Baustein in mehrstufigen CI-Pipelines, z. B. in Kombination mit separaten Publish- oder Deploy-Actions.
+
+Weitere Infos [hier](./build-docs/README.md).
+
+### publish-docs - versionierte Dokumentation aus CI heraus deployen
+
+**Publish Documentation** ist eine Composite GitHub Action zur **kontrollierten Veröffentlichung versionierter Dokumentation** in ein separates GitHub-Pages-Repository.
+Sie ist dafür gedacht, **bereits generierte Dokumentation** (z. B. aus MkDocs, Docusaurus, Sphinx, Custom-Generatoren) aus einem CI-Workflow heraus **strukturiert, reproduzierbar und versionssicher** zu publizieren.
+
+Weitere Infos [hier](./publish-docs/README.md).
+
 ## Beispiele
 
 Schaue in [CI Tests](https://github.com/d3datadevelopment/CI-Tests) für Integrationsbeispiele.
