@@ -64,7 +64,7 @@ Weitere Infos [hier](./publish-docs/README.md).
 
 ## Beispiele
 
-Schaue in [CI Tests](https://github.com/d3datadevelopment/CI-Tests) für Integrationsbeispiele.
+Schaue in den [Beispiele-Ordner](./examples) sowie in [CI Tests](https://github.com/d3datadevelopment/CI-Tests) für Integrationsbeispiele.
 
 ## Selbsttests
 
