@@ -14,10 +14,6 @@ inputs:
     description: "OXID version / ref used"
     required: true
 
-  phpunit_version:
-    description: "PHPUnit version constraint (e.g. ^9, ^10)"
-    required: true
-
   sourceguardian:
     description: "Whether SourceGuardian is required"
     required: false
@@ -204,15 +200,17 @@ runs:
       run: |
         rm -rf ./source/tmp/*
 
-    - name: Install PHPStan
+    - name: install plugin dev-depedencies
       shell: bash
-      if: ${{ hashFiles('phpstan.neon', 'phpstan.neon.dist') != '' }}
       working-directory: shop
       run: |
-        composer require --dev \
-          "phpstan/phpstan:^1" \
-          --no-interaction \
-          --no-progress
+        DEV_DEPS=$(jq -r '.["require-dev"] | to_entries | map("\(.key):\(.value)") | join(" ")' ../composer.json)
+
+        if [ -n "$DEV_DEPS" ]; then
+          composer require --dev --prefer-lowest $DEV_DEPS --no-interaction --no-progress
+        else
+          echo "Keine require-dev Abhängigkeiten gefunden"
+        fi
 
     - name: Run PHPStan
       shell: bash
@@ -248,17 +246,6 @@ runs:
         fi
 
         exit ${PHPSTAN_EXIT:-0}
-
-    - name: Install PHPUnit
-      shell: bash
-      if: ${{ hashFiles('phpunit.xml') != '' }}
-      working-directory: shop
-      run: |
-        composer require --dev \
-          "phpunit/phpunit:${{ inputs.phpunit_version }}" \
-          d3/testingtools:"*" \
-          --no-interaction \
-          --no-progress
 
     - name: Run PHPUnit tests
       shell: bash

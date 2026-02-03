@@ -87,7 +87,6 @@ Im Gegensatz zu reinen Paket-Tests wird hier bewusst **gegen einen echten OXID S
 |-----------------------|--------|---------|---------------------------------------|--------------------|
 | php_version           | string | ja      | PHP-Version                           | "8.0"              |
 | oxid_ref              | string | ja      | OXID Version                          | "dev-b-7.4-ce"     |
-| phpunit_version       | string | ja      | PHPUnit Version                       | "^9.0"             |
 | sourceguardian        | bool   | nein    | SourceGuardian aktivieren             | "true"             |
 | composer_package_name | string | ja      | Composer Package Name                 | "d3/mypackage"     |
 | oxid_module_id        | string | nein    | OXID Module ID zur Aktivierung        | "d3mymodule"       |
@@ -112,7 +111,6 @@ Diese müssen vom Workflow gesetzt werden:
   with:
     php_version: "8.2"
     oxid_ref: "dev-b-7.1-ce"
-    phpunit_version: "^10"
     composer_package_name: "d3/mailconfigchecker"
     oxid_module_id: "d3mailconfigchecker"
     test_suites: "unit,integration"
