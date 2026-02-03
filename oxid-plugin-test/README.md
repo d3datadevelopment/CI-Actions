@@ -48,7 +48,7 @@ Im Gegensatz zu reinen Paket-Tests wird hier bewusst **gegen einen echten OXID S
 
 * Registrierung des Modul-Repositories per Composer (`path`-Repository)
 * Installation des Plugins über den angegebenen Composer-Paketnamen
-* Optionale Modul-Aktivierung über die OXID Modul-ID
+* Optionale Modul-Aktivierung über die OXID Modul-IDs
 * Bereinigung des TMP-Verzeichnisses vor Tests
 
 ---
@@ -83,15 +83,15 @@ Im Gegensatz zu reinen Paket-Tests wird hier bewusst **gegen einen echten OXID S
 
 ## Inputs
 
-| Name                  | Typ    | Pflicht | Beschreibung                          | Beispiel           |
-|-----------------------|--------|---------|---------------------------------------|--------------------|
-| php_version           | string | ja      | PHP-Version                           | "8.0"              |
-| oxid_ref              | string | ja      | OXID Version                          | "dev-b-7.4-ce"     |
-| sourceguardian        | bool   | nein    | SourceGuardian aktivieren             | "true"             |
-| composer_package_name | string | ja      | Composer Package Name                 | "d3/mypackage"     |
-| oxid_module_id        | string | nein    | OXID Module ID zur Aktivierung        | "d3mymodule"       |
-| test_suites           | string | nein    | kommagetrennte PHPUnit Suites         | "unit,integration" |
-| syntax_check_paths    | string | nein    | kommagetrennte Pfade für Syntax-Check | "src,tests"        |
+| Name                  | Typ    | Pflicht | Beschreibung                                        | Beispiel              |
+|-----------------------|--------|---------|-----------------------------------------------------|-----------------------|
+| php_version           | string | ja      | PHP-Version                                         | "8.0"                 |
+| oxid_ref              | string | ja      | OXID Version                                        | "dev-b-7.4-ce"        |
+| sourceguardian        | bool   | nein    | SourceGuardian aktivieren                           | "true"                |
+| composer_package_name | string | ja      | Composer Package Name                               | "d3/mypackage"        |
+| oxid_module_ids       | string | nein    | OXID Module IDs zur Aktivierung, ggf. kommagetrennt | "d3module,d3mymodule" |
+| test_suites           | string | nein    | kommagetrennte PHPUnit Suites                       | "unit,integration"    |
+| syntax_check_paths    | string | nein    | kommagetrennte Pfade für Syntax-Check               | "src,tests"           |
 
 ## Erwartete ENV-Variablen
 
@@ -112,7 +112,7 @@ Diese müssen vom Workflow gesetzt werden:
     php_version: "8.2"
     oxid_ref: "dev-b-7.1-ce"
     composer_package_name: "d3/mailconfigchecker"
-    oxid_module_id: "d3mailconfigchecker"
+    oxid_module_ids: "d3mailconfigchecker"
     test_suites: "unit,integration"
     syntax_check_paths: "src,tests"
 ```
