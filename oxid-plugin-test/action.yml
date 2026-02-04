@@ -180,7 +180,7 @@ runs:
       shell: bash
       working-directory: shop
       run: |
-        composer require "${{ inputs.composer_package_name }}:@dev" --no-interaction --no-progress
+        composer require -W "${{ inputs.composer_package_name }}:@dev" --no-interaction --no-progress
 
     - name: Activate OXID modules
       shell: bash
