@@ -126,6 +126,12 @@ runs:
       run: |
         composer config allow-plugins true
 
+    - name: do not block insecure packages
+      shell: bash
+      working-directory: shop
+      run: |
+        composer config audit.block-insecure false
+
     - name: Install OXID dependencies
       shell: bash
       working-directory: shop
