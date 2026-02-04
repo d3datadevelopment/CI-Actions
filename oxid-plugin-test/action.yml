@@ -214,7 +214,7 @@ runs:
       shell: bash
       working-directory: shop
       run: |
-        SCRIPT="./vendor/bin/d3modules_install"
+        SCRIPT="$(pwd)/vendor/bin/d3modules_install"
 
         if [[ ! -e "$SCRIPT" ]]; then
           echo "Optional install script not present – skipping."
