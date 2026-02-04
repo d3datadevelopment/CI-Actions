@@ -107,7 +107,7 @@ Diese müssen vom Workflow gesetzt werden:
 
 ```
 - name: Run OXID plugin tests
-  uses: d3datadevelopment/ci-actions/oxid-plugin-test@v1
+  uses: d3datadevelopment/ci-actions/oxid-plugin-test@v1.1.0
   with:
     php_version: "8.2"
     oxid_ref: "dev-b-7.1-ce"

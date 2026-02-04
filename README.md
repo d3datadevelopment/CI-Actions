@@ -16,10 +16,10 @@ Dieses Repository verwendet semantische Versionierung über Git-Tags.
 Empfohlene Nutzung in Projekten:
 
 ```
-uses: d3datadevelopment/ci-actions/<action-name>@v1
+uses: d3datadevelopment/ci-actions/<action-name>@v1.0.0
 ```
 
-`v1` zeigt immer auf die aktuelle stabile Version der Major-Reihe. In `rel_X.x` befindet sich die aktuellste Pre-Release Version.
+In `rel_X.x` befindet sich die aktuellste Pre-Release Version.
 
 ## Enthaltene Actions
 
