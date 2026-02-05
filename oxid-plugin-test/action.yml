@@ -55,6 +55,7 @@ runs:
         php-version: ${{ inputs.php_version }}
         tools: composer:v2
         extensions: mbstring, intl, gd, mysql, zip, curl
+        coverage: none
         ini-values: |
           memory_limit=1G
           date.timezone=Europe/Berlin
