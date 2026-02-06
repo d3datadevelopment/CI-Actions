@@ -83,15 +83,16 @@ Im Gegensatz zu reinen Paket-Tests wird hier bewusst **gegen einen echten OXID S
 
 ## Inputs
 
-| Name                  | Typ    | Pflicht | Beschreibung                                        | Beispiel              |
-|-----------------------|--------|---------|-----------------------------------------------------|-----------------------|
-| php_version           | string | ja      | PHP-Version                                         | "8.0"                 |
-| oxid_ref              | string | ja      | OXID Version                                        | "dev-b-7.4-ce"        |
-| sourceguardian        | bool   | nein    | SourceGuardian aktivieren                           | "true"                |
-| composer_package_name | string | ja      | Composer Package Name                               | "d3/mypackage"        |
-| oxid_module_ids       | string | nein    | OXID Module IDs zur Aktivierung, ggf. kommagetrennt | "d3module,d3mymodule" |
-| test_suites           | string | nein    | kommagetrennte PHPUnit Suites                       | "unit,integration"    |
-| syntax_check_paths    | string | nein    | kommagetrennte Pfade für Syntax-Check               | "src,tests"           |
+| Name                  | Typ    | Pflicht | Beschreibung                                           | Beispiel              |
+|-----------------------|--------|---------|--------------------------------------------------------|-----------------------|
+| php_version           | string | ja      | PHP-Version                                            | "8.0"                 |
+| oxid_ref              | string | ja      | OXID Version                                           | "dev-b-7.4-ce"        |
+| sourceguardian        | bool   | nein    | SourceGuardian aktivieren                              | "true"                |
+| composer_package_name | string | ja      | Composer Package Name                                  | "d3/mypackage"        |
+| oxid_module_ids       | string | nein    | OXID Module IDs zur Aktivierung, ggf. kommagetrennt    | "d3module,d3mymodule" |
+| test_suites           | string | nein    | kommagetrennte PHPUnit Suites                          | "unit,integration"    |
+| syntax_check_paths    | string | nein    | kommagetrennte Pfade für Syntax-Check                  | "src,tests"           |
+| git_access_token      | string | nein    | Access-Token für andere Pakete (via Repository Secrets)| "abcdef"              |
 
 ## Erwartete ENV-Variablen
 
@@ -115,6 +116,7 @@ Diese müssen vom Workflow gesetzt werden:
     oxid_module_ids: "d3mailconfigchecker"
     test_suites: "unit,integration"
     syntax_check_paths: "src,tests"
+    git_access_token: ${{ secrets.STATUS_TOKEN }}
 ```
 
 ## Hinweise

@@ -35,6 +35,10 @@ inputs:
     required: false
     default: "false"
 
+  git_access_token:
+    description: "access token for other repositories"
+    required: false
+
 runs:
   using: "composite"
   steps:
@@ -175,6 +179,30 @@ runs:
           vendor/bin/oe-console oe:theme:activate apex
         else
           echo "Theme activation not supported in this OXID version - skipped."
+        fi
+
+    - name: Configure Composer auth for 3rd party repos
+      shell: bash
+      working-directory: shop
+      run: |
+        if [[ -z "${{ inputs.git_access_token }}" ]]; then
+          echo "No git access token provided – skipping Composer auth setup."
+          exit 0
+        fi
+
+        composer config --global http-basic.git.d3data.de \
+          gitea-admin \
+          "${{ inputs.git_access_token }}"
+
+    - name: Register ModCfg repository
+      shell: bash
+      working-directory: shop
+      run: |
+        if jq -e '.require["d3/modcfg"]' ../composer.json > /dev/null; then
+          echo "modcfg required – registering repository"
+
+          composer config repositories.d3modcfg vcs \
+            https://git.d3data.de/D3Private/ModCfg.git
         fi
 
     - name: Register plugin repository (path)
