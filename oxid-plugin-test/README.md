@@ -90,6 +90,7 @@ Im Gegensatz zu reinen Paket-Tests wird hier bewusst **gegen einen echten OXID S
 | sourceguardian        | bool   | nein    | SourceGuardian aktivieren                              | "true"                |
 | composer_package_name | string | ja      | Composer Package Name                                  | "d3/mypackage"        |
 | oxid_module_ids       | string | nein    | OXID Module IDs zur Aktivierung, ggf. kommagetrennt    | "d3module,d3mymodule" |
+| module_licenses       | json   | nein    | Lizenzschlüssel für D3-Module (via Repsoitory Secrets) | siehe Integration     |
 | test_suites           | string | nein    | kommagetrennte PHPUnit Suites                          | "unit,integration"    |
 | syntax_check_paths    | string | nein    | kommagetrennte Pfade für Syntax-Check                  | "src,tests"           |
 | git_access_token      | string | nein    | Access-Token für andere Pakete (via Repository Secrets)| "abcdef"              |
@@ -114,12 +115,21 @@ Diese müssen vom Workflow gesetzt werden:
     oxid_ref: "dev-b-7.1-ce"
     composer_package_name: "d3/mailconfigchecker"
     oxid_module_ids: "d3mailconfigchecker"
+    module_licenses: |
+    {
+      "d3/modcfg": "${{ secrets.D3_MODCFG_LICENSE }}",
+      "d3/ordermanager": "${{ secrets.D3_ORDERMANAGER_LICENSE }}"
+    }
     test_suites: "unit,integration"
     syntax_check_paths: "src,tests"
     git_access_token: ${{ secrets.STATUS_TOKEN }}
 ```
 
 ## Hinweise
+
+### Lizenzschlüssel
+
+Diese bitte immer ohne Kopf- und Fußzeile und ohne Zeilenumbrüche hinterlegen. Angabe nur als Einzeiler.
 
 ### PHPStan
 
