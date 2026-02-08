@@ -244,22 +244,26 @@ runs:
         echo "Starting module activation"
 
         if [[ -z "${{ inputs.oxid_module_ids }}" ]]; then
-          echo "No OXID module IDs provided - skipping module activation."
-          exit 0
+          echo "No OXID module IDs provided – skipping module activation."
+          exit 1
+        else
+          IFS=',' read -ra MODULES <<< "${{ inputs.oxid_module_ids }}"
+
+          for MODULE in "${MODULES[@]}"; do
+            MODULE_TRIMMED="$(echo "$MODULE" | xargs)"
+
+            if [[ -z "$MODULE_TRIMMED" ]]; then
+              echo "Empty module ID encountered – skipped."
+              continue
+            fi
+
+            echo "Activating module: $MODULE_TRIMMED"
+
+            if ! vendor/bin/oe-console oe:module:activate "$MODULE_TRIMMED"; then
+              echo "WARNING: Module activation failed for '$MODULE_TRIMMED' – continuing."
+            fi
+          done
         fi
-
-        IFS=',' read -ra MODULES <<< "${{ inputs.oxid_module_ids }}"
-
-        for MODULE in "${MODULES[@]}"; do
-          MODULE_TRIMMED=$(echo "$MODULE" | xargs)
-
-          if [[ -z "$MODULE_TRIMMED" ]]; then
-            continue
-          fi
-
-          echo "Activating OXID module: $MODULE_TRIMMED"
-          vendor/bin/oe-console oe:module:activate "$MODULE_TRIMMED" || exit 1
-        done
 
     - name: Clear temporary directory
       shell: bash
@@ -299,7 +303,7 @@ runs:
           echo "No module licenses provided – skipping."
         elif ! vendor/bin/oe-console list | grep -q 'd3:modcfg:license:set'; then
           echo "License command not available – skipping."
-          echo 1
+          exit 1
         else
           echo '${{ inputs.module_licenses }}' \
             | jq -r 'to_entries[] | "\(.key) \(.value)"' \
@@ -368,29 +372,34 @@ runs:
       working-directory: shop
       if: ${{ hashFiles('phpunit.xml') != '' }}
       run: |
-        if [[ -z "${{ inputs.test_suites }}" ]]; then
-          echo "No test suites specified - running default PHPUnit configuration"
+        echo "Running PHPUnit tests"
 
-          vendor/bin/phpunit \
-            --fail-on-risky \
-            --fail-on-warning \
-            --config="vendor/${{ inputs.composer_package_name }}" \
-            --no-coverage \
-            --bootstrap="$(pwd)/source/bootstrap.php"
+        CONFIG_DIR="vendor/${{ inputs.composer_package_name }}"
 
+        if [[ ! -f "$CONFIG_DIR/phpunit.xml" ]]; then
+          echo "phpunit.xml not found in plugin – skipping PHPUnit."
         else
-          IFS=',' read -ra SUITES <<< "${{ inputs.test_suites }}"
-
-          for SUITE in "${SUITES[@]}"; do
-        SUITE="$(echo "$SUITE" | xargs)"
-            echo "Running test suite: $SUITE"
-
+          if [[ -z "${{ inputs.test_suites }}" ]]; then
             vendor/bin/phpunit \
               --fail-on-risky \
               --fail-on-warning \
-              --config="vendor/${{ inputs.composer_package_name }}" \
+              --config="$CONFIG_DIR" \
               --no-coverage \
-              --bootstrap="$(pwd)/source/bootstrap.php" \
-              --testsuite="$SUITE"
-          done
+              --bootstrap="source/bootstrap.php"
+          else
+            IFS=',' read -ra SUITES <<< "${{ inputs.test_suites }}"
+
+            for SUITE in "${SUITES[@]}"; do
+              SUITE="$(echo "$SUITE" | xargs)"
+              echo "Running test suite: $SUITE"
+
+              vendor/bin/phpunit \
+                --fail-on-risky \
+                --fail-on-warning \
+                --config="$CONFIG_DIR" \
+                --no-coverage \
+                --bootstrap="source/bootstrap.php" \
+                --testsuite="$SUITE"
+            done
+          fi
         fi
