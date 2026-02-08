@@ -51,7 +51,6 @@ runs:
       run: |
         echo "PHP=${{ inputs.php_version }}"
         echo "OXID=${{ inputs.oxid_ref }}"
-        echo "PHPUnit=${{ inputs.phpunit_version }}"
         echo "SourceGuardian=${{ inputs.sourceguardian }}"
         echo "Composer Package=${{ inputs.composer_package_name }}"
         echo "Module ID=${{ inputs.oxid_module_ids }}"
@@ -140,12 +139,6 @@ runs:
       working-directory: shop
       run: |
         composer config audit.block-insecure false
-
-    - name: Install OXID dependencies
-      shell: bash
-      working-directory: shop
-      run: |
-        composer install --no-interaction --no-progress
 
     - name: Run OXID setup
       shell: bash
@@ -240,7 +233,7 @@ runs:
           fi
 
           echo "Activating OXID module: $MODULE_TRIMMED"
-          vendor/bin/oe-console oe:module:activate "$MODULE_TRIMMED"
+          vendor/bin/oe-console oe:module:activate "$MODULE_TRIMMED" || exit 1
         done
 
     - name: Clear TMP folder
