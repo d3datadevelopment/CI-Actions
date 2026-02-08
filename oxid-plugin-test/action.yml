@@ -40,21 +40,22 @@ inputs:
     default: "false"
 
   git_access_token:
-    description: "access token for other repositories"
+    description: "Access token for private repositories"
     required: false
 
 runs:
   using: "composite"
   steps:
+
     - name: Dump received inputs (debug)
       shell: bash
       run: |
-        echo "PHP=${{ inputs.php_version }}"
-        echo "OXID=${{ inputs.oxid_ref }}"
-        echo "SourceGuardian=${{ inputs.sourceguardian }}"
-        echo "Composer Package=${{ inputs.composer_package_name }}"
-        echo "Module ID=${{ inputs.oxid_module_ids }}"
-        echo "Test Suites=${{ inputs.test_suites }}"
+        echo "PHP version:        ${{ inputs.php_version }}"
+        echo "OXID ref:           ${{ inputs.oxid_ref }}"
+        echo "SourceGuardian:     ${{ inputs.sourceguardian }}"
+        echo "Composer package:   ${{ inputs.composer_package_name }}"
+        echo "Module IDs:         ${{ inputs.oxid_module_ids }}"
+        echo "Test suites:        ${{ inputs.test_suites }}"
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
@@ -77,15 +78,23 @@ runs:
       if: inputs.sourceguardian == 'true'
       shell: bash
       run: |
+        echo "Installing SourceGuardian loader"
+
         PHP_VERSION=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
-        LOADER=ixed.${PHP_VERSION}.lin
+        LOADER="ixed.${PHP_VERSION}.lin"
 
         curl -fsSL https://www.sourceguardian.com/loaders/download/loaders.linux-x86_64.tar.gz -o sg.tar.gz
         mkdir -p loaders ~/.php-ext
-        tar -xzf sg.tar.gz -C ./loaders
-        cp loaders/$LOADER ~/.php-ext/
+        tar -xzf sg.tar.gz -C loaders
 
-    - name: Enable SourceGuardian Loader
+        if [[ ! -f "loaders/${LOADER}" ]]; then
+          echo "ERROR: SourceGuardian loader ${LOADER} not found in archive"
+          exit 1
+        fi
+
+        cp "loaders/${LOADER}" "$HOME/.php-ext/"
+
+    - name: Enable and verify SourceGuardian Loader
       if: inputs.sourceguardian == 'true'
       shell: bash
       run: |
@@ -96,54 +105,62 @@ runs:
         PHP_INI_DIR=$(php -i | grep '^Scan this dir for additional .ini files =>' | sed 's/.*=> //')
         sudo cp $HOME/sourceguardian.ini "$PHP_INI_DIR/99-sourceguardian.ini"
 
-        php -v | grep -i sourceguardian
+        echo "Verifying SourceGuardian installation"
+        php --ini
+        php -m | grep -i sourceguardian || {
+          echo "ERROR: SourceGuardian was requested but is not active"
+          exit 1
+        }
 
     - name: PHP syntax check
       shell: bash
       run: |
         if [[ -z "${{ inputs.syntax_check_paths }}" ]]; then
-          echo "No syntax check paths provided - skipping PHP syntax check."
+          echo "No syntax check paths provided – skipping PHP syntax check."
           exit 0
+        else
+          echo "Running PHP syntax check"
+
+          IFS=',' read -ra PATHS <<< "${{ inputs.syntax_check_paths }}"
+
+          for RAW_PATH in "${PATHS[@]}"; do
+            PATH_TRIMMED="$(echo "$RAW_PATH" | xargs)"
+
+            if [[ -z "$PATH_TRIMMED" ]]; then
+              echo "Empty path entry – skipped."
+              continue
+            fi
+
+            if [[ -d "$PATH_TRIMMED" ]]; then
+              echo "Checking PHP files in $PATH_TRIMMED"
+              find "$PATH_TRIMMED" -name "*.php" -print0 | xargs -0 -n1 php -l
+            else
+              echo "Path '$PATH_TRIMMED' does not exist – skipped."
+            fi
+          done
         fi
-
-        IFS=',' read -ra PATHS <<< "${{ inputs.syntax_check_paths }}"
-
-        for RAW_PATH in "${PATHS[@]}"; do
-          PATH_TRIMMED="$(echo "$RAW_PATH" | xargs)"
-
-          if [[ -z "$PATH_TRIMMED" ]]; then
-            continue
-          fi
-
-          if [[ -d "$PATH_TRIMMED" ]]; then
-            echo "Syntax check in $PATH_TRIMMED"
-            find "$PATH_TRIMMED" -name "*.php" -print0 | xargs -0 -n1 php -l
-          else
-            echo "Path '$PATH_TRIMMED' does not exist - skipped."
-          fi
-        done
 
     - name: Install OXID Shop
       shell: bash
       run: |
-        composer create-project oxid-esales/oxideshop-project shop "${{ inputs.oxid_ref }}" --no-interaction --no-security-blocking
+        echo "Creating OXID shop project"
+        composer create-project oxid-esales/oxideshop-project shop "${{ inputs.oxid_ref }}" \
+          --no-interaction --no-security-blocking
 
-    - name: Allow all plugins
+    - name: Configure Composer plugins and security settings
       shell: bash
       working-directory: shop
       run: |
+        echo "Configuring Composer plugin permissions"
         composer config allow-plugins true
-
-    - name: do not block insecure packages
-      shell: bash
-      working-directory: shop
-      run: |
         composer config audit.block-insecure false
 
     - name: Run OXID setup
       shell: bash
       working-directory: shop
       run: |
+        echo "Running OXID shop setup"
+
         : "${DB_HOST:?DB_HOST not set}"
         : "${DB_NAME:?DB_NAME not set}"
         : "${DB_USER:?DB_USER not set}"
@@ -164,6 +181,7 @@ runs:
       shell: bash
       working-directory: shop
       run: |
+        echo "Creating OXID admin user"
         vendor/bin/oe-console oe:admin:create-user \
           --admin-email=ci@example.dev \
           --admin-password=admina
@@ -172,6 +190,8 @@ runs:
       shell: bash
       working-directory: shop
       run: |
+        echo "Attempting theme activation"
+
         if vendor/bin/oe-console list | grep -q "oe:theme:activate"; then
           vendor/bin/oe-console oe:theme:activate apex
         else
@@ -206,18 +226,23 @@ runs:
       shell: bash
       working-directory: shop
       run: |
+        echo "Registering plugin path repository"
         composer config repositories.plugin path ../
 
     - name: Install plugin via Composer
       shell: bash
       working-directory: shop
       run: |
-        composer require "${{ inputs.composer_package_name }}:@dev" --no-interaction --no-progress
+        echo "Installing plugin via Composer"
+        composer require "${{ inputs.composer_package_name }}:@dev" \
+          --prefer-source --no-interaction --no-progress
 
     - name: Activate OXID modules
       shell: bash
       working-directory: shop
       run: |
+        echo "Starting module activation"
+
         if [[ -z "${{ inputs.oxid_module_ids }}" ]]; then
           echo "No OXID module IDs provided - skipping module activation."
           exit 0
@@ -236,60 +261,62 @@ runs:
           vendor/bin/oe-console oe:module:activate "$MODULE_TRIMMED" || exit 1
         done
 
-    - name: Clear TMP folder
+    - name: Clear temporary directory
       shell: bash
       working-directory: shop
       run: |
-        rm -rf ./source/tmp/*
+        echo "Clearing temporary directory"
+        rm -rf ./source/tmp/* || true
+        ls -la ./source/tmp || true
 
     - name: Run optional module install script
       shell: bash
       working-directory: shop
       run: |
-        SCRIPT="$(pwd)/vendor/bin/d3modules_install"
+        SCRIPT="vendor/bin/d3modules_install"
+
+        echo "Checking for optional module install script"
 
         if [[ ! -e "$SCRIPT" ]]; then
-          echo "Optional install script not present – skipping."
-          exit 0
-        fi
-
-        if [[ ! -x "$SCRIPT" ]]; then
-          echo "Install script exists but is not executable."
-          echo "Path: $SCRIPT"
+          echo "No install script found – skipping."
+        elif [[ ! -x "$SCRIPT" ]]; then
+          echo "Install script exists but is not executable:"
+          echo "  $SCRIPT"
+          echo "Skipping execution."
           exit 1
+        else
+          echo "Running install script: $SCRIPT"
+          "$SCRIPT" || echo "WARNING: Install script failed – continuing."
         fi
-
-        echo "Running install script: $SCRIPT"
-        "$SCRIPT"
 
     - name: Set module licenses
       shell: bash
       working-directory: shop
       run: |
+        echo "Starting module license setup"
+
         if [[ -z "${{ inputs.module_licenses }}" ]]; then
-          echo "No module licenses provided – skipping license setup."
-          exit 0
+          echo "No module licenses provided – skipping."
+        elif ! vendor/bin/oe-console list | grep -q 'd3:modcfg:license:set'; then
+          echo "License command not available – skipping."
+          echo 1
+        else
+          echo '${{ inputs.module_licenses }}' \
+            | jq -r 'to_entries[] | "\(.key) \(.value)"' \
+            | while read -r MODULE_ID LICENSE_KEY; do
+                if [[ -z "$LICENSE_KEY" ]]; then
+                  echo "No license key for module $MODULE_ID – skipped."
+                  continue
+                fi
+
+                echo "Setting license for module $MODULE_ID"
+
+                vendor/bin/oe-console d3:modcfg:license:set 1 "$MODULE_ID" "$LICENSE_KEY" \
+                  || echo "WARNING: License activation failed for $MODULE_ID – continuing."
+              done
         fi
 
-        if ! vendor/bin/oe-console list | grep -q '^  d3:modcfg:license:set'; then
-          echo "OXID console command d3:modcfg:license:set not available – skipping license setup."
-          exit 0
-        fi
-
-        echo '${{ inputs.module_licenses }}' \
-        | jq -r 'to_entries[] | "\(.key) \(.value)"' \
-        | while read -r MODULE_ID LICENSE_KEY; do
-            if [[ -z "$LICENSE_KEY" ]]; then
-              echo "No license key for module $MODULE_ID – skipping."
-              continue
-            fi
-
-            echo "Setting license for module $MODULE_ID"
-            vendor/bin/oe-console d3:modcfg:license:set 1 "$MODULE_ID" "$LICENSE_KEY" \
-              || echo "License activation failed for $MODULE_ID – ignored."
-          done
-
-    - name: install plugin dev-depedencies
+    - name: Install plugin dev dependencies
       shell: bash
       working-directory: shop
       run: |
@@ -303,8 +330,8 @@ runs:
 
     - name: Run PHPStan
       shell: bash
-      if: ${{ hashFiles('phpstan.neon', 'phpstan.neon.dist') != '' }}
       working-directory: shop
+      if: ${{ hashFiles('phpstan.neon', 'phpstan.neon.dist') != '' }}
       run: |
         set +o pipefail
 
@@ -338,8 +365,8 @@ runs:
 
     - name: Run PHPUnit tests
       shell: bash
-      if: ${{ hashFiles('phpunit.xml') != '' }}
       working-directory: shop
+      if: ${{ hashFiles('phpunit.xml') != '' }}
       run: |
         if [[ -z "${{ inputs.test_suites }}" ]]; then
           echo "No test suites specified - running default PHPUnit configuration"
@@ -367,4 +394,3 @@ runs:
               --testsuite="$SUITE"
           done
         fi
-
