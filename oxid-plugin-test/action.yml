@@ -281,6 +281,11 @@ runs:
 
         echo "Checking for optional module install script"
 
+        QUIET_FLAG=""
+        if [[ "${{ inputs.debug }}" != "true" ]]; then
+          QUIET_FLAG="--quiet"
+        fi
+
         if [[ ! -e "$SCRIPT" ]]; then
           echo "No install script found – skipping."
         elif [[ ! -x "$SCRIPT" ]]; then
@@ -289,7 +294,7 @@ runs:
           echo "Skipping execution."
           exit 1
         else
-          echo "Running install script: $SCRIPT"
+          echo "Running install script: $SCRIPT $QUIET_FLAG"
           "$SCRIPT" || echo "WARNING: Install script failed – continuing."
         fi
 
