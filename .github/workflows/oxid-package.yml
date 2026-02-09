@@ -7,6 +7,11 @@ on:
       - 'main'
       - 'master'
   pull_request:
+  workflow_dispatch:
+    inputs:
+      debug:
+        required: false
+        default: "false"
 
 jobs:
   plugin-tests:
@@ -60,11 +65,11 @@ jobs:
         with:
           php_version: ${{ matrix.php }}
           oxid_ref: ${{ matrix.oxid_ref }}
-          phpunit_version: "^9 || ^10"
           sourceguardian: "true"
           composer_package_name: "d3/ci-test"
-          oxid_module_id: "d3citest"
+          oxid_module_ids: "d3citest"
           test_suites: "unit,integration"
+          debug: ${{ github.event.inputs.debug }}
           syntax_check_paths: "Tests"
 
   report-status:
