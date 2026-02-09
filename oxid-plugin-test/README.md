@@ -117,8 +117,8 @@ Diese müssen vom Workflow gesetzt werden:
     oxid_module_ids: "d3mailconfigchecker"
     module_licenses: |
     {
-      "d3/modcfg": "${{ secrets.D3_MODCFG_LICENSE }}",
-      "d3/ordermanager": "${{ secrets.D3_ORDERMANAGER_LICENSE }}"
+      "d3modcfg_lib": "${{ secrets.D3_MODCFG_LICENSE }}",
+      "d3_ordermanager": "${{ secrets.D3_ORDERMANAGER_LICENSE }}"
     }
     test_suites: "unit,integration"
     syntax_check_paths: "src,tests"
@@ -130,6 +130,7 @@ Diese müssen vom Workflow gesetzt werden:
 ### Lizenzschlüssel
 
 Diese bitte immer ohne Kopf- und Fußzeile und ohne Zeilenumbrüche hinterlegen. Angabe nur als Einzeiler.
+Erfordert mindestens Modul-Connector in Version 7.4.
 
 ### PHPStan
 
