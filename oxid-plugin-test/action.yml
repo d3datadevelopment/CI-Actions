@@ -237,6 +237,18 @@ runs:
         composer require "${{ inputs.composer_package_name }}:@dev" \
           --prefer-source --no-interaction --no-progress
 
+    - name: Install plugin dev dependencies
+      shell: bash
+      working-directory: shop
+      run: |
+        DEV_DEPS=$(jq -r '.["require-dev"] | to_entries | map("\(.key):\(.value)") | join(" ")' ../composer.json)
+
+        if [ -n "$DEV_DEPS" ]; then
+          composer require --dev --prefer-lowest $DEV_DEPS --no-interaction --no-progress
+        else
+          echo "Keine require-dev Abhängigkeiten gefunden"
+        fi
+
     - name: Activate OXID modules
       shell: bash
       working-directory: shop
@@ -323,18 +335,6 @@ runs:
                 vendor/bin/oe-console d3:modcfg:license:set 1 "$MODULE_ID" "$LICENSE_KEY" \
                   || echo "WARNING: License activation failed for $MODULE_ID – continuing."
               done
-        fi
-
-    - name: Install plugin dev dependencies
-      shell: bash
-      working-directory: shop
-      run: |
-        DEV_DEPS=$(jq -r '.["require-dev"] | to_entries | map("\(.key):\(.value)") | join(" ")' ../composer.json)
-
-        if [ -n "$DEV_DEPS" ]; then
-          composer require --dev --prefer-lowest $DEV_DEPS --no-interaction --no-progress
-        else
-          echo "Keine require-dev Abhängigkeiten gefunden"
         fi
 
     - name: Run PHPStan
