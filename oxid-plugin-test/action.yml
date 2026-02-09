@@ -385,12 +385,15 @@ runs:
           echo "phpunit.xml not found in plugin – skipping PHPUnit."
         else
           if [[ -z "${{ inputs.test_suites }}" ]]; then
-            vendor/bin/phpunit \
-              --fail-on-risky \
-              --fail-on-warning \
-              --config="$CONFIG_DIR" \
-              --no-coverage \
-              --bootstrap="source/bootstrap.php"
+            php \
+              -d error_reporting="E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED" \
+              -d display_errors=Off \
+              vendor/bin/phpunit \
+                --fail-on-risky \
+                --fail-on-warning \
+                --config="$CONFIG_DIR" \
+                --no-coverage \
+                --bootstrap="source/bootstrap.php"
           else
             IFS=',' read -ra SUITES <<< "${{ inputs.test_suites }}"
 
@@ -398,13 +401,16 @@ runs:
               SUITE="$(echo "$SUITE" | xargs)"
               echo "Running test suite: $SUITE"
 
-              vendor/bin/phpunit \
-                --fail-on-risky \
-                --fail-on-warning \
-                --config="$CONFIG_DIR" \
-                --no-coverage \
-                --bootstrap="source/bootstrap.php" \
-                --testsuite="$SUITE"
+              php \
+                -d error_reporting="E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED" \
+                -d display_errors=Off \
+                vendor/bin/phpunit \
+                  --fail-on-risky \
+                  --fail-on-warning \
+                  --config="$CONFIG_DIR" \
+                  --no-coverage \
+                  --bootstrap="source/bootstrap.php" \
+                  --testsuite="$SUITE"
             done
           fi
         fi
