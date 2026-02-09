@@ -5,7 +5,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased](https://git.d3data.de/D3Public/CI-Actions/compare/v1.1.0...rel_1.x)
 
-## [v1.1.0](https://git.d3data.de/D3Public/CI-Actions/compare/v1.0.0...v1.1.0) - 2026-02-04
+## [v1.1.0](https://git.d3data.de/D3Public/CI-Actions/compare/v1.0.0...v1.1.0) - 2026-02-09
 
 ### Added
 - don't block insecure composer packages
@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - install dev-dependencies from plugin composer definition
 - add allow Composer plugins task
 - add PHPStan task to composer test runner and oxid test runner if a configuration file is present
+- can set license keys for D3 modules
 
 ### Changed
 - can use comma separated list for modules to be activated
