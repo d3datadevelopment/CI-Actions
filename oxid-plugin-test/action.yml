@@ -257,7 +257,6 @@ runs:
 
         if [[ -z "${{ inputs.oxid_module_ids }}" ]]; then
           echo "No OXID module IDs provided – skipping module activation."
-          exit 1
         else
           IFS=',' read -ra MODULES <<< "${{ inputs.oxid_module_ids }}"
 
