@@ -11,15 +11,17 @@ Secrets und Matrix-Logik sollen bitte im verwendenden Projekt definiert werden. 
 
 ## Versionierung
 
-Dieses Repository verwendet semantische Versionierung über Git-Tags.
+Dieses Repository verwendet semantische Versionierung über Git-Tags in Verbindung mal Aliases. Die Aliases definieren den Anwendungszweck, um die Versionen sauber einem Thema zuzuordnen.:
+
+`alias--vX.X.Z`
 
 Empfohlene Nutzung in Projekten:
 
 ```
-uses: d3datadevelopment/ci-actions/<action-name>@v1.0.0
+uses: d3datadevelopment/ci-actions/<action-name>@<alias>--v1.0.0
 ```
 
-In `rel_X.x` befindet sich die aktuellste Pre-Release Version.
+In `rel_X.x` befindet sich die aktuellste Pre-Release Version aller Actions. Bitte beachtet, dass sich durch Minor-Changes Änderungen im Interface ergeben können.
 
 ## Enthaltene Actions
 

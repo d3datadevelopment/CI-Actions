@@ -44,7 +44,7 @@ Das macht die Action robust gegenüber temporären API-Ausfällen und geeignet f
 
 ```
 - name: Report CI status
-  uses: d3datadevelopment/ci-actions/status-reporter@v1.1.0
+  uses: d3datadevelopment/ci-actions/status-reporter@status-reporter--v1.0.0
   with:
     status_endpoint: https://example.org/statuses/${{ github.sha }}
     auth_token: ${{ secrets.STATUS_TOKEN }}

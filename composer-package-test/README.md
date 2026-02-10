@@ -73,7 +73,7 @@ Die Action deckt bewusst die klassischen Disziplinen ab: Syntaxprüfung, Depende
 
 ```
 - name: Run package tests
-  uses: d3datadevelopment/ci-actions/composer-package-test@v1.1.0
+  uses: d3datadevelopment/ci-actions/composer-package-test@php-tests--v1.1.0
   with:
     php_version: "8.2"
     syntax_check_paths: "src,Tests"
