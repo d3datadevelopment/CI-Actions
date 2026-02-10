@@ -44,6 +44,12 @@ jobs:
     needs: package-tests
     if: always()
     steps:
+      - name: Checkout CI Actions
+        uses: actions/checkout@v4
+        with:
+          repository: d3datadevelopment/CI-Actions
+          path: .ci-actions
+
       - name: Report CI status
         uses: ./.ci-actions/status-reporter
         with:
