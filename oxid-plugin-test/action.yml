@@ -116,7 +116,7 @@ runs:
       shell: bash
       run: |
         if [[ -z "${{ inputs.syntax_check_paths }}" ]]; then
-          echo "No syntax check paths provided – skipping PHP syntax check."
+          echo "No syntax check paths provided � skipping PHP syntax check."
           exit 0
         else
           echo "Running PHP syntax check"
@@ -127,7 +127,7 @@ runs:
             PATH_TRIMMED="$(echo "$RAW_PATH" | xargs)"
 
             if [[ -z "$PATH_TRIMMED" ]]; then
-              echo "Empty path entry – skipped."
+              echo "Empty path entry - skipped."
               continue
             fi
 
@@ -135,7 +135,7 @@ runs:
               echo "Checking PHP files in $PATH_TRIMMED"
               find "$PATH_TRIMMED" -name "*.php" -print0 | xargs -0 -n1 php -l
             else
-              echo "Path '$PATH_TRIMMED' does not exist – skipped."
+              echo "Path '$PATH_TRIMMED' does not exist - skipped."
             fi
           done
         fi
@@ -203,7 +203,7 @@ runs:
       working-directory: shop
       run: |
         if [[ -z "${{ inputs.git_access_token }}" ]]; then
-          echo "No git access token provided – skipping Composer auth setup."
+          echo "No git access token provided - skipping Composer auth setup."
           exit 0
         fi
 
@@ -216,7 +216,7 @@ runs:
       working-directory: shop
       run: |
         if jq -e '.require["d3/modcfg"]' ../composer.json > /dev/null; then
-          echo "modcfg required – registering repository"
+          echo "modcfg required - registering repository"
 
           composer config repositories.d3modcfg vcs \
             https://git.d3data.de/D3Private/ModCfg.git
@@ -246,7 +246,7 @@ runs:
         if [ -n "$DEV_DEPS" ]; then
           composer require --dev --prefer-lowest $DEV_DEPS --no-interaction --no-progress
         else
-          echo "Keine require-dev Abhängigkeiten gefunden"
+          echo "No require-dev dependencies provided"
         fi
 
     - name: Activate OXID modules
@@ -256,7 +256,7 @@ runs:
         echo "Starting module activation"
 
         if [[ -z "${{ inputs.oxid_module_ids }}" ]]; then
-          echo "No OXID module IDs provided – skipping module activation."
+          echo "No OXID module IDs provided - skipping module activation."
         else
           IFS=',' read -ra MODULES <<< "${{ inputs.oxid_module_ids }}"
 
@@ -264,14 +264,14 @@ runs:
             MODULE_TRIMMED="$(echo "$MODULE" | xargs)"
 
             if [[ -z "$MODULE_TRIMMED" ]]; then
-              echo "Empty module ID encountered – skipped."
+              echo "Empty module ID encountered - skipped."
               continue
             fi
 
             echo "Activating module: $MODULE_TRIMMED"
 
             if ! vendor/bin/oe-console oe:module:activate "$MODULE_TRIMMED"; then
-              echo "WARNING: Module activation failed for '$MODULE_TRIMMED' – continuing."
+              echo "WARNING: Module activation failed for '$MODULE_TRIMMED' - continuing."
             fi
           done
         fi
@@ -298,7 +298,7 @@ runs:
         fi
 
         if [[ ! -e "$SCRIPT" ]]; then
-          echo "No install script found – skipping."
+          echo "No install script found - skipping."
         elif [[ ! -x "$SCRIPT" ]]; then
           echo "Install script exists but is not executable:"
           echo "  $SCRIPT"
@@ -306,7 +306,7 @@ runs:
           exit 1
         else
           echo "Running install script: $SCRIPT $QUIET_FLAG"
-          "$SCRIPT" || echo "WARNING: Install script failed – continuing."
+          "$SCRIPT" || echo "WARNING: Install script failed - continuing."
         fi
 
     - name: Set module licenses
@@ -316,23 +316,23 @@ runs:
         echo "Starting module license setup"
 
         if [[ -z "${{ inputs.module_licenses }}" ]]; then
-          echo "No module licenses provided – skipping."
+          echo "No module licenses provided - skipping."
         elif ! vendor/bin/oe-console list | grep -q 'd3:modcfg:license:set'; then
-          echo "License command not available – skipping."
+          echo "License command not available - skipping."
           exit 1
         else
           echo '${{ inputs.module_licenses }}' \
             | jq -r 'to_entries[] | "\(.key) \(.value)"' \
             | while read -r MODULE_ID LICENSE_KEY; do
                 if [[ -z "$LICENSE_KEY" ]]; then
-                  echo "No license key for module $MODULE_ID – skipped."
+                  echo "No license key for module $MODULE_ID - skipped."
                   continue
                 fi
 
                 echo "Setting license for module $MODULE_ID"
 
                 vendor/bin/oe-console d3:modcfg:license:set 1 "$MODULE_ID" "$LICENSE_KEY" \
-                  || echo "WARNING: License activation failed for $MODULE_ID – continuing."
+                  || echo "WARNING: License activation failed for $MODULE_ID - continuing."
               done
         fi
 
@@ -381,7 +381,7 @@ runs:
         CONFIG_DIR="vendor/${{ inputs.composer_package_name }}"
 
         if [[ ! -f "$CONFIG_DIR/phpunit.xml" ]]; then
-          echo "phpunit.xml not found in plugin – skipping PHPUnit."
+          echo "phpunit.xml not found in plugin - skipping PHPUnit."
         else
           if [[ -z "${{ inputs.test_suites }}" ]]; then
             php \
