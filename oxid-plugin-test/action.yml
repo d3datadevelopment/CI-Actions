@@ -43,6 +43,21 @@ inputs:
     description: "Access token for private repositories"
     required: false
 
+  run_yaml_lint:
+    description: "Run Symfony YAML lint"
+    required: false
+    default: "true"
+
+  run_container_lint:
+    description: "Run Symfony container lint"
+    required: false
+    default: "true"
+
+  fail_on_module_activation_error:
+    description: "Fail pipeline on module activation error"
+    required: false
+    default: "true"
+
 runs:
   using: "composite"
   steps:
@@ -249,6 +264,66 @@ runs:
           echo "No require-dev dependencies provided"
         fi
 
+    - name: Install YAML linter
+      shell: bash
+      run: |
+        pip install yamllint
+
+    - name: Create yamllint config
+      shell: bash
+      run: |
+        cat > /tmp/.yamllint <<'EOF'
+        extends: default
+
+        rules:
+          document-start: disable
+          truthy: disable
+          indentation: disable
+      
+          line-length:
+            max: 200
+            level: warning
+
+          braces:
+            min-spaces-inside: 1
+            max-spaces-inside: 1
+
+        ignore: |
+          vendor/
+          shop/
+        EOF
+
+    - name: Debug working directory
+      shell: bash
+      run: |
+        pwd
+        ls -la
+        find . -name ".yamllint"
+
+    - name: Lint module YAML files
+      shell: bash
+      run: |
+        find . \
+          \( -name "*.yml" -o -name "*.yaml" \) \
+          -not -path "./vendor/*" \
+          -not -path "./shop/*" \
+          -not -path "./.ci-actions/*" \
+          -exec yamllint -c /tmp/.yamllint {} +
+
+    - name: Detect non UTF-8 YAML files
+      shell: bash
+      run: |
+        find . \
+          \( -name "*.yml" -o -name "*.yaml" \) \
+          -not -path "./vendor/*" \
+          -exec file -i {} \;
+
+    - name: Bootstrap oe-console
+      shell: bash
+      working-directory: shop
+      run: |
+        vendor/bin/oe-console list
+
     - name: Activate OXID modules
       shell: bash
       working-directory: shop
@@ -271,7 +346,11 @@ runs:
             echo "Activating module: $MODULE_TRIMMED"
 
             if ! vendor/bin/oe-console oe:module:activate "$MODULE_TRIMMED"; then
-              echo "WARNING: Module activation failed for '$MODULE_TRIMMED' - continuing."
+              echo "ERROR: Module activation failed for '$MODULE_TRIMMED'"
+
+              if [[ "${{ inputs.fail_on_module_activation_error }}" == "true" ]]; then
+                exit 1
+              fi
             fi
           done
         fi
@@ -413,3 +492,19 @@ runs:
             done
           fi
         fi
+
+    - name: Dump OXID logs on failure
+      shell: bash
+      working-directory: shop
+      if: failure()
+      run: |
+        echo "==== OXID LOGS ===="
+
+        find source/log -type f -exec sh -c '
+          echo "---- $1 ----"
+          cat "$1"
+        ' _ {} \; || true
+
+        echo "==== TMP LOGS ===="
+
+        find source/tmp -type f | head -50 || true
