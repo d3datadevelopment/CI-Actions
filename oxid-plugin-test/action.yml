@@ -113,6 +113,8 @@ runs:
       if: inputs.sourceguardian == 'true'
       shell: bash
       run: |
+        echo "Enable and verify SourceGuardian Loader"
+        
         echo "zend_extension=$HOME/.php-ext/ixed.$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;').lin" \
           > $HOME/sourceguardian.ini
         echo "sourceguardian.enable=1" >> $HOME/sourceguardian.ini
@@ -130,6 +132,8 @@ runs:
     - name: PHP syntax check
       shell: bash
       run: |
+        echo "PHP syntax check"
+        
         if [[ -z "${{ inputs.syntax_check_paths }}" ]]; then
           echo "No syntax check paths provided – skipping PHP syntax check."
           exit 0
@@ -155,10 +159,75 @@ runs:
           done
         fi
 
+    - name: Install YAML linter
+      shell: bash
+      run: |
+        echo "Install YAML linter"
+        
+        pip install yamllint
+
+    - name: Create yamllint config
+      shell: bash
+      run: |
+        echo "Create yamllint config"
+        
+        cat > /tmp/.yamllint <<'EOF'
+        extends: default
+
+        rules:
+          document-start: disable
+          truthy: disable
+          indentation: disable
+        
+          line-length:
+            max: 200
+            level: warning
+
+          braces:
+            min-spaces-inside: 1
+            max-spaces-inside: 1
+
+        ignore: |
+          vendor/
+          shop/
+        EOF
+
+    - name: Debug working directory
+      shell: bash
+      run: |
+        echo "Debug working directory"
+        
+        pwd
+        ls -la
+        find . -name ".yamllint"
+
+    - name: Lint module YAML files
+      shell: bash
+      run: |
+        echo "Lint module YAML files"
+        
+        find . \
+          \( -name "*.yml" -o -name "*.yaml" \) \
+          -not -path "./vendor/*" \
+          -not -path "./shop/*" \
+          -not -path "./.ci-actions/*" \
+          -exec yamllint -c /tmp/.yamllint {} +
+
+    - name: Detect non UTF-8 YAML files
+      shell: bash
+      run: |
+        echo "Detect non UTF-8 YAML files"
+        
+        find . \
+          \( -name "*.yml" -o -name "*.yaml" \) \
+          -not -path "./vendor/*" \
+          -exec file -i {} \;
+
     - name: Install OXID Shop
       shell: bash
       run: |
         echo "Creating OXID shop project"
+        
         composer create-project oxid-esales/oxideshop-project shop "${{ inputs.oxid_ref }}" \
           --no-interaction --no-security-blocking
 
@@ -167,6 +236,7 @@ runs:
       working-directory: shop
       run: |
         echo "Configuring Composer plugin permissions"
+        
         composer config allow-plugins true
         composer config audit.block-insecure false
 
@@ -197,6 +267,7 @@ runs:
       working-directory: shop
       run: |
         echo "Creating OXID admin user"
+        
         vendor/bin/oe-console oe:admin:create-user \
           --admin-email=ci@example.dev \
           --admin-password=admina
@@ -217,6 +288,8 @@ runs:
       shell: bash
       working-directory: shop
       run: |
+        echo "Configure Composer auth for 3rd party repos"
+        
         if [[ -z "${{ inputs.git_access_token }}" ]]; then
           echo "No git access token provided - skipping Composer auth setup."
           exit 0
@@ -230,6 +303,8 @@ runs:
       shell: bash
       working-directory: shop
       run: |
+        echo "Register ModCfg repository"
+        
         if jq -e '.require["d3/modcfg"]' ../composer.json > /dev/null; then
           echo "modcfg required - registering repository"
 
@@ -242,6 +317,7 @@ runs:
       working-directory: shop
       run: |
         echo "Registering plugin path repository"
+        
         composer config repositories.plugin path ../
 
     - name: Install plugin via Composer
@@ -249,6 +325,7 @@ runs:
       working-directory: shop
       run: |
         echo "Installing plugin via Composer"
+        
         composer require "${{ inputs.composer_package_name }}:@dev" \
           --prefer-source --no-interaction --no-progress
 
@@ -256,6 +333,8 @@ runs:
       shell: bash
       working-directory: shop
       run: |
+        echo "Install plugin dev dependencies"
+        
         DEV_DEPS=$(jq -r '.["require-dev"] | to_entries | map("\(.key):\(.value)") | join(" ")' ../composer.json)
 
         if [ -n "$DEV_DEPS" ]; then
@@ -263,60 +342,6 @@ runs:
         else
           echo "No require-dev dependencies provided"
         fi
-
-    - name: Install YAML linter
-      shell: bash
-      run: |
-        pip install yamllint
-
-    - name: Create yamllint config
-      shell: bash
-      run: |
-        cat > /tmp/.yamllint <<'EOF'
-        extends: default
-
-        rules:
-          document-start: disable
-          truthy: disable
-          indentation: disable
-      
-          line-length:
-            max: 200
-            level: warning
-
-          braces:
-            min-spaces-inside: 1
-            max-spaces-inside: 1
-
-        ignore: |
-          vendor/
-          shop/
-        EOF
-
-    - name: Debug working directory
-      shell: bash
-      run: |
-        pwd
-        ls -la
-        find . -name ".yamllint"
-
-    - name: Lint module YAML files
-      shell: bash
-      run: |
-        find . \
-          \( -name "*.yml" -o -name "*.yaml" \) \
-          -not -path "./vendor/*" \
-          -not -path "./shop/*" \
-          -not -path "./.ci-actions/*" \
-          -exec yamllint -c /tmp/.yamllint {} +
-
-    - name: Detect non UTF-8 YAML files
-      shell: bash
-      run: |
-        find . \
-          \( -name "*.yml" -o -name "*.yaml" \) \
-          -not -path "./vendor/*" \
-          -exec file -i {} \;
 
     - name: Bootstrap oe-console
       shell: bash
@@ -360,6 +385,7 @@ runs:
       working-directory: shop
       run: |
         echo "Clearing temporary directory"
+        
         rm -rf ./source/tmp/* || true
         ls -la ./source/tmp || true
 
@@ -367,9 +393,9 @@ runs:
       shell: bash
       working-directory: shop
       run: |
-        SCRIPT="vendor/bin/d3modules_install"
-
         echo "Checking for optional module install script"
+
+        SCRIPT="vendor/bin/d3modules_install"
 
         QUIET_FLAG=""
         if [[ "${{ inputs.debug }}" != "true" ]]; then
@@ -420,6 +446,8 @@ runs:
       working-directory: shop
       if: ${{ hashFiles('phpstan.neon', 'phpstan.neon.dist') != '' }}
       run: |
+        echo "Running PHPStan"
+        
         set +o pipefail
 
         if [[ -f vendor/${{ inputs.composer_package_name }}/phpstan.neon ]]; then
