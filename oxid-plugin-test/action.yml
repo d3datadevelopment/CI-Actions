@@ -43,16 +43,6 @@ inputs:
     description: "Access token for private repositories"
     required: false
 
-  run_yaml_lint:
-    description: "Run Symfony YAML lint"
-    required: false
-    default: "true"
-
-  run_container_lint:
-    description: "Run Symfony container lint"
-    required: false
-    default: "true"
-
   fail_on_module_activation_error:
     description: "Fail pipeline on module activation error"
     required: false
