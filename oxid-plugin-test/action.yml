@@ -125,7 +125,7 @@ runs:
         echo "PHP syntax check"
         
         if [[ -z "${{ inputs.syntax_check_paths }}" ]]; then
-          echo "No syntax check paths provided – skipping PHP syntax check."
+          echo "No syntax check paths provided â€“ skipping PHP syntax check."
           exit 0
         else
           echo "Running PHP syntax check"
@@ -440,24 +440,71 @@ runs:
                   || echo "WARNING: License activation failed for $MODULE_ID - continuing."
               done
         fi
+    - name: Detect test configuration files
+      id: detect_test_configs
+      shell: bash
+      working-directory: shop
+      run: |
+        echo "Detecting module test configuration files"
+
+        PLUGIN_DIR="vendor/${{ inputs.composer_package_name }}"
+
+        find_phpstan_config() {
+          local plugin_dir="$1"
+          local candidate
+
+          for candidate in \
+            "$plugin_dir/phpstan.neon" \
+            "$plugin_dir/phpstan.neon.dist" \
+            "$plugin_dir/.ci-tools/phpstan.neon" \
+            "$plugin_dir/.ci-tools/phpstan.neon.dist"; do
+            if [[ -f "$candidate" ]]; then
+              echo "$candidate"
+              return 0
+            fi
+          done
+
+          find "$plugin_dir" \
+            \( -path "$plugin_dir/vendor" -o -path "$plugin_dir/.git" -o -path "$plugin_dir/node_modules" \) -prune -o \
+            -type f \( -name "phpstan.neon" -o -name "phpstan.neon.dist" \) -print -quit
+        }
+
+        find_phpunit_config() {
+          local plugin_dir="$1"
+          local candidate
+
+          for candidate in \
+            "$plugin_dir/phpunit.xml" \
+            "$plugin_dir/phpunit.xml.dist" \
+            "$plugin_dir/.ci-tools/phpunit.xml" \
+            "$plugin_dir/.ci-tools/phpunit.xml.dist"; do
+            if [[ -f "$candidate" ]]; then
+              echo "$candidate"
+              return 0
+            fi
+          done
+
+          find "$plugin_dir" \
+            \( -path "$plugin_dir/vendor" -o -path "$plugin_dir/.git" -o -path "$plugin_dir/node_modules" \) -prune -o \
+            -type f \( -name "phpunit.xml" -o -name "phpunit.xml.dist" \) -print -quit
+        }
+
+        PHPSTAN_CONFIG="$(find_phpstan_config "$PLUGIN_DIR")"
+        PHPUNIT_CONFIG="$(find_phpunit_config "$PLUGIN_DIR")"
+
+        echo "phpstan_config=$PHPSTAN_CONFIG" >> "$GITHUB_OUTPUT"
+        echo "phpunit_config=$PHPUNIT_CONFIG" >> "$GITHUB_OUTPUT"
 
     - name: Run PHPStan
       shell: bash
       working-directory: shop
-      if: ${{ hashFiles('phpstan.neon', 'phpstan.neon.dist') != '' }}
+      if: ${{ steps.detect_test_configs.outputs.phpstan_config != '' }}
       run: |
         echo "Running PHPStan"
         
         set +o pipefail
 
-        if [[ -f vendor/${{ inputs.composer_package_name }}/phpstan.neon ]]; then
-          CONFIG="vendor/${{ inputs.composer_package_name }}/phpstan.neon"
-        elif [[ -f vendor/${{ inputs.composer_package_name }}/phpstan.neon.dist ]]; then
-          CONFIG="vendor/${{ inputs.composer_package_name }}/phpstan.neon.dist"
-        else
-          echo "No PHPStan config found, skipping."
-          exit 0
-        fi
+        CONFIG="${{ steps.detect_test_configs.outputs.phpstan_config }}"
 
         if [ "${{ inputs.debug }}" = "true" ] || [ "${{ inputs.debug }}" = "1" ]; then
           OUTPUT_FILE=phpstan.log
@@ -481,44 +528,40 @@ runs:
     - name: Run PHPUnit tests
       shell: bash
       working-directory: shop
-      if: ${{ hashFiles('phpunit.xml') != '' }}
+      if: ${{ steps.detect_test_configs.outputs.phpunit_config != '' }}
       run: |
         echo "Running PHPUnit tests"
 
-        CONFIG_DIR="vendor/${{ inputs.composer_package_name }}"
+        CONFIG="${{ steps.detect_test_configs.outputs.phpunit_config }}"
 
-        if [[ ! -f "$CONFIG_DIR/phpunit.xml" ]]; then
-          echo "phpunit.xml not found in plugin - skipping PHPUnit."
+        if [[ -z "${{ inputs.test_suites }}" ]]; then
+          php \
+            -d error_reporting="E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED" \
+            -d display_errors=Off \
+            vendor/bin/phpunit \
+              --fail-on-risky \
+              --fail-on-warning \
+              --configuration="$CONFIG" \
+              --no-coverage \
+              --bootstrap="source/bootstrap.php"
         else
-          if [[ -z "${{ inputs.test_suites }}" ]]; then
+          IFS=',' read -ra SUITES <<< "${{ inputs.test_suites }}"
+
+          for SUITE in "${SUITES[@]}"; do
+            SUITE="$(echo "$SUITE" | xargs)"
+            echo "Running test suite: $SUITE"
+
             php \
               -d error_reporting="E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED" \
               -d display_errors=Off \
               vendor/bin/phpunit \
                 --fail-on-risky \
                 --fail-on-warning \
-                --config="$CONFIG_DIR" \
+                --configuration="$CONFIG" \
                 --no-coverage \
-                --bootstrap="source/bootstrap.php"
-          else
-            IFS=',' read -ra SUITES <<< "${{ inputs.test_suites }}"
-
-            for SUITE in "${SUITES[@]}"; do
-              SUITE="$(echo "$SUITE" | xargs)"
-              echo "Running test suite: $SUITE"
-
-              php \
-                -d error_reporting="E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED" \
-                -d display_errors=Off \
-                vendor/bin/phpunit \
-                  --fail-on-risky \
-                  --fail-on-warning \
-                  --config="$CONFIG_DIR" \
-                  --no-coverage \
-                  --bootstrap="source/bootstrap.php" \
-                  --testsuite="$SUITE"
-            done
-          fi
+                --bootstrap="source/bootstrap.php" \
+                --testsuite="$SUITE"
+          done
         fi
 
     - name: Dump OXID logs on failure
