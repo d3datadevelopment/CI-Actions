@@ -289,6 +289,43 @@ runs:
           gitea-admin \
           "${{ inputs.git_access_token }}"
 
+    - name: Register CI composer repositories
+      shell: bash
+      working-directory: shop
+      run: |
+        echo "Register CI composer repositories"
+
+        REPO_FILE="../.github/composer-repositories.json"
+
+        if [[ ! -f "$REPO_FILE" ]]; then
+          echo "No composer repository manifest found - skipping."
+          exit 0
+        fi
+
+        if ! jq -e '.repositories | type == "array"' "$REPO_FILE" > /dev/null; then
+          echo "Invalid composer repository manifest - expected .repositories array"
+          exit 1
+        fi
+
+        if [[ "$(jq '.repositories | length' "$REPO_FILE")" -eq 0 ]]; then
+          echo "Composer repository manifest is empty - skipping."
+          exit 0
+        fi
+
+        jq -r '.repositories[] | @base64' "$REPO_FILE" | while read -r REPOSITORY; do
+          NAME="$(echo "$REPOSITORY" | base64 --decode | jq -r '.name // empty')"
+          TYPE="$(echo "$REPOSITORY" | base64 --decode | jq -r '.type // "vcs"')"
+          URL="$(echo "$REPOSITORY" | base64 --decode | jq -r '.url // empty')"
+
+          if [[ -z "$NAME" || -z "$URL" ]]; then
+            echo "Skipping invalid repository entry - name or url missing."
+            continue
+          fi
+
+          echo "Registering composer repository: $NAME ($TYPE)"
+          composer config "repositories.${NAME}" "$TYPE" "$URL"
+        done
+
     - name: Register ModCfg repository
       shell: bash
       working-directory: shop
