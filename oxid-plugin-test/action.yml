@@ -362,8 +362,50 @@ runs:
       working-directory: shop
       run: |
         echo "Installing plugin via Composer"
-        
-        composer require "${{ inputs.composer_package_name }}:@dev" \
+
+        REQUIREMENTS_INPUT='${{ inputs.composer_package_name }}'
+        REQUIRE_ARGS=()
+
+        if [[ "$REQUIREMENTS_INPUT" == \[* ]]; then
+          if ! jq -e 'type == "array"' <<< "$REQUIREMENTS_INPUT" > /dev/null; then
+            echo "composer_package_name starts with '[' but is not valid JSON array"
+            exit 1
+          fi
+
+          while IFS= read -r PACKAGE; do
+            PACKAGE_TRIMMED="$(echo "$PACKAGE" | xargs)"
+
+            if [[ -z "$PACKAGE_TRIMMED" ]]; then
+              continue
+            fi
+
+            if [[ "$PACKAGE_TRIMMED" == *:* ]]; then
+              REQUIRE_ARGS+=("$PACKAGE_TRIMMED")
+            else
+              REQUIRE_ARGS+=("${PACKAGE_TRIMMED}:@dev")
+            fi
+          done < <(jq -r '.[]' <<< "$REQUIREMENTS_INPUT")
+        else
+          PACKAGE_TRIMMED="$(echo "$REQUIREMENTS_INPUT" | xargs)"
+
+          if [[ -z "$PACKAGE_TRIMMED" ]]; then
+            echo "No composer package name provided"
+            exit 1
+          fi
+
+          if [[ "$PACKAGE_TRIMMED" == *:* ]]; then
+            REQUIRE_ARGS+=("$PACKAGE_TRIMMED")
+          else
+            REQUIRE_ARGS+=("${PACKAGE_TRIMMED}:@dev")
+          fi
+        fi
+
+        if [[ "${#REQUIRE_ARGS[@]}" -eq 0 ]]; then
+          echo "No valid composer package requirements found"
+          exit 1
+        fi
+
+        composer require "${REQUIRE_ARGS[@]}" \
           --prefer-source --no-interaction --no-progress
 
     - name: Install plugin dev dependencies

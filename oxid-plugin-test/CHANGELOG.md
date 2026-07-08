@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Registered optional Composer repositories from the `.github` manifest when present.
+- Supported multiple Composer requirements with optional version constraints in the CI action.
 
 ## [v1.3.0](https://git.d3data.de/D3Public/CI-Actions/compare/php-tests--v1.2.0...php-tests--v1.3.0) - 2026-06-10
 
