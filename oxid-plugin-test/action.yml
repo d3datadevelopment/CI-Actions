@@ -519,14 +519,48 @@ runs:
                   || echo "WARNING: License activation failed for $MODULE_ID - continuing."
               done
         fi
-    - name: Detect test configuration files
+    - name: Detect test configuration files
       id: detect_test_configs
       shell: bash
       working-directory: shop
       run: |
         echo "Detecting module test configuration files"
 
-        PLUGIN_DIR="vendor/${{ inputs.composer_package_name }}"
+        REQUIREMENTS_INPUT='${{ inputs.composer_package_name }}'
+        PLUGIN_PACKAGE=""
+
+        if [[ "$REQUIREMENTS_INPUT" == \[* ]]; then
+          if ! jq -e 'type == "array"' <<< "$REQUIREMENTS_INPUT" > /dev/null; then
+            echo "composer_package_name starts with '[' but is not valid JSON array"
+            exit 1
+          fi
+
+          while IFS= read -r PACKAGE; do
+            PACKAGE_TRIMMED="$(echo "$PACKAGE" | xargs)"
+
+            if [[ -z "$PACKAGE_TRIMMED" ]]; then
+              continue
+            fi
+
+            PLUGIN_PACKAGE="${PACKAGE_TRIMMED%%:*}"
+          done < <(jq -r '.[]' <<< "$REQUIREMENTS_INPUT")
+        else
+          PACKAGE_TRIMMED="$(echo "$REQUIREMENTS_INPUT" | xargs)"
+
+          if [[ -z "$PACKAGE_TRIMMED" ]]; then
+            echo "No composer package name provided"
+            exit 1
+          fi
+
+          PLUGIN_PACKAGE="${PACKAGE_TRIMMED%%:*}"
+        fi
+
+        if [[ -z "$PLUGIN_PACKAGE" ]]; then
+          echo "No valid composer package name resolved"
+          exit 1
+        fi
+
+        PLUGIN_DIR="vendor/${PLUGIN_PACKAGE}"
 
         find_phpstan_config() {
           local plugin_dir="$1"
