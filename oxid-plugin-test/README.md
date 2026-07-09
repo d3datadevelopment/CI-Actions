@@ -89,11 +89,14 @@ Im Gegensatz zu reinen Paket-Tests wird hier bewusst **gegen einen echten OXID S
 | oxid_ref              | string           | ja      | OXID Version                                           | "dev-b-7.4-ce"        |
 | sourceguardian        | bool             | nein    | SourceGuardian aktivieren                              | "true"                |
 | composer_package_name | string oder json | ja      | Composer Package Name                                  | "d3/mypackage"        |
+| plugin_package_name   | string           | nein    | Optionaler Paketname fuer Test-Konfigurationen        | "d3/mypackage"        |
 | oxid_module_ids       | string           | nein    | OXID Module IDs zur Aktivierung, ggf. kommagetrennt    | "d3module,d3mymodule" |
 | module_licenses       | json             | nein    | Lizenzschlüssel für D3-Module (via Repsoitory Secrets) | siehe Integration     |
 | test_suites           | string           | nein    | kommagetrennte PHPUnit Suites                          | "unit,integration"    |
 | syntax_check_paths    | string           | nein    | kommagetrennte Pfade für Syntax-Check                  | "src,tests"           |
 | git_access_token      | string           | nein    | Access-Token für andere Pakete (via Repository Secrets)| "abcdef"              |
+
+`composer_package_name` kann entweder ein einzelner Paket-String oder ein JSON-Array von Composer-Requirements sein. Wenn `plugin_package_name` gesetzt ist, wird genau dieser Paketname für die Suche nach den Test-Konfigurationsdateien verwendet. Ist er nicht gesetzt, wertet die Action `composer_package_name` aus: Bei einem Array wird der letzte nicht-leere Eintrag als Zielpaket genommen, bei einem String wird dieser Wert direkt verwendet. Ein eventuell angehängter Versions- oder Constraint-Teil hinter `:` wird dabei abgeschnitten, bevor daraus der Pfad `vendor/<paketname>` gebildet wird.
 
 ## Erwartete ENV-Variablen
 
@@ -113,7 +116,9 @@ Diese müssen vom Workflow gesetzt werden:
   with:
     php_version: "8.2"
     oxid_ref: "dev-b-7.1-ce"
-    composer_package_name: "d3/mailconfigchecker"
+    composer_package_name: |
+      ["d3/some-helper:^1.0", "d3/mailconfigchecker:^2.0"]
+    plugin_package_name: "d3/mailconfigchecker"
     oxid_module_ids: "d3mailconfigchecker"
     module_licenses: |
     {

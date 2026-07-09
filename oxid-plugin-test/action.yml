@@ -20,8 +20,12 @@ inputs:
     default: "false"
 
   composer_package_name:
-    description: "Composer package name (e.g. d3/mypackage)"
+    description: "Composer package name or JSON array of requirements (e.g. d3/mypackage or [\"d3/a\", \"d3/b\"])"
     required: true
+
+  plugin_package_name:
+    description: "Optional explicit plugin package name used for test config detection (e.g. d3/mypackage)"
+    required: false
 
   oxid_module_ids:
     description: "Comma-separated list of OXID module IDs (e.g. d3mypackage) to activate, order matters. If empty, module activation is skipped."
@@ -59,6 +63,7 @@ runs:
         echo "OXID ref:           ${{ inputs.oxid_ref }}"
         echo "SourceGuardian:     ${{ inputs.sourceguardian }}"
         echo "Composer package:   ${{ inputs.composer_package_name }}"
+        echo "Plugin package:     ${{ inputs.plugin_package_name }}"
         echo "Module IDs:         ${{ inputs.oxid_module_ids }}"
         echo "Test suites:        ${{ inputs.test_suites }}"
 
@@ -526,33 +531,40 @@ runs:
       run: |
         echo "Detecting module test configuration files"
 
-        REQUIREMENTS_INPUT='${{ inputs.composer_package_name }}'
         PLUGIN_PACKAGE=""
+        EXPLICIT_PLUGIN_PACKAGE='${{ inputs.plugin_package_name }}'
 
-        if [[ "$REQUIREMENTS_INPUT" == \[* ]]; then
-          if ! jq -e 'type == "array"' <<< "$REQUIREMENTS_INPUT" > /dev/null; then
-            echo "composer_package_name starts with '[' but is not valid JSON array"
-            exit 1
-          fi
+        if [[ -n "$EXPLICIT_PLUGIN_PACKAGE" ]]; then
+          PLUGIN_PACKAGE="$(echo "$EXPLICIT_PLUGIN_PACKAGE" | xargs)"
+          PLUGIN_PACKAGE="${PLUGIN_PACKAGE%%:*}"
+        else
+          REQUIREMENTS_INPUT='${{ inputs.composer_package_name }}'
 
-          while IFS= read -r PACKAGE; do
-            PACKAGE_TRIMMED="$(echo "$PACKAGE" | xargs)"
+          if [[ "$REQUIREMENTS_INPUT" == \[* ]]; then
+            if ! jq -e 'type == "array"' <<< "$REQUIREMENTS_INPUT" > /dev/null; then
+              echo "composer_package_name starts with '[' but is not valid JSON array"
+              exit 1
+            fi
+
+            while IFS= read -r PACKAGE; do
+              PACKAGE_TRIMMED="$(echo "$PACKAGE" | xargs)"
+
+              if [[ -z "$PACKAGE_TRIMMED" ]]; then
+                continue
+              fi
+
+              PLUGIN_PACKAGE="${PACKAGE_TRIMMED%%:*}"
+            done < <(jq -r '.[]' <<< "$REQUIREMENTS_INPUT")
+          else
+            PACKAGE_TRIMMED="$(echo "$REQUIREMENTS_INPUT" | xargs)"
 
             if [[ -z "$PACKAGE_TRIMMED" ]]; then
-              continue
+              echo "No composer package name provided"
+              exit 1
             fi
 
             PLUGIN_PACKAGE="${PACKAGE_TRIMMED%%:*}"
-          done < <(jq -r '.[]' <<< "$REQUIREMENTS_INPUT")
-        else
-          PACKAGE_TRIMMED="$(echo "$REQUIREMENTS_INPUT" | xargs)"
-
-          if [[ -z "$PACKAGE_TRIMMED" ]]; then
-            echo "No composer package name provided"
-            exit 1
           fi
-
-          PLUGIN_PACKAGE="${PACKAGE_TRIMMED%%:*}"
         fi
 
         if [[ -z "$PLUGIN_PACKAGE" ]]; then
