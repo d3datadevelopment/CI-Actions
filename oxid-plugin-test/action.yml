@@ -20,7 +20,7 @@ inputs:
     default: "false"
 
   composer_package_name:
-    description: "Composer package name or JSON array of requirements (e.g. d3/mypackage or [\"d3/a\", \"d3/b\"])"
+    description: "Composer package name or JSON array of requirements; only the last unversioned entry falls back to :@dev (e.g. d3/mypackage or [\"d3/a\", \"d3/b\"])"
     required: true
 
   plugin_package_name:
@@ -371,38 +371,62 @@ runs:
         REQUIREMENTS_INPUT='${{ inputs.composer_package_name }}'
         REQUIRE_ARGS=()
 
+        add_requirement() {
+          local requirement="$1"
+          local allow_dev_suffix="$2"
+          local package_trimmed
+
+          package_trimmed="$(echo "$requirement" | xargs)"
+
+          if [[ -z "$package_trimmed" ]]; then
+            return 0
+          fi
+
+          if [[ "$package_trimmed" == *:* ]]; then
+            REQUIRE_ARGS+=("$package_trimmed")
+          elif [[ "$allow_dev_suffix" == "true" ]]; then
+            REQUIRE_ARGS+=("${package_trimmed}:@dev")
+          else
+            REQUIRE_ARGS+=("$package_trimmed")
+          fi
+        }
+
         if [[ "$REQUIREMENTS_INPUT" == \[* ]]; then
           if ! jq -e 'type == "array"' <<< "$REQUIREMENTS_INPUT" > /dev/null; then
             echo "composer_package_name starts with '[' but is not valid JSON array"
             exit 1
           fi
 
-          while IFS= read -r PACKAGE; do
-            PACKAGE_TRIMMED="$(echo "$PACKAGE" | xargs)"
+          mapfile -t PACKAGES < <(jq -r '.[]' <<< "$REQUIREMENTS_INPUT")
 
-            if [[ -z "$PACKAGE_TRIMMED" ]]; then
-              continue
+          LAST_INDEX=-1
+          for INDEX in "${!PACKAGES[@]}"; do
+            PACKAGE_TRIMMED="$(echo "${PACKAGES[$INDEX]}" | xargs)"
+
+            if [[ -n "$PACKAGE_TRIMMED" ]]; then
+              LAST_INDEX="$INDEX"
             fi
+          done
 
-            if [[ "$PACKAGE_TRIMMED" == *:* ]]; then
-              REQUIRE_ARGS+=("$PACKAGE_TRIMMED")
+          if [[ "$LAST_INDEX" -lt 0 ]]; then
+            echo "No valid composer package requirements found"
+            exit 1
+          fi
+
+          for INDEX in "${!PACKAGES[@]}"; do
+            if [[ "$INDEX" -eq "$LAST_INDEX" ]]; then
+              add_requirement "${PACKAGES[$INDEX]}" "true"
             else
-              REQUIRE_ARGS+=("${PACKAGE_TRIMMED}:@dev")
+              add_requirement "${PACKAGES[$INDEX]}" "false"
             fi
-          done < <(jq -r '.[]' <<< "$REQUIREMENTS_INPUT")
+          done
         else
-          PACKAGE_TRIMMED="$(echo "$REQUIREMENTS_INPUT" | xargs)"
-
-          if [[ -z "$PACKAGE_TRIMMED" ]]; then
+          if [[ -z "$(echo "$REQUIREMENTS_INPUT" | xargs)" ]]; then
             echo "No composer package name provided"
             exit 1
           fi
 
-          if [[ "$PACKAGE_TRIMMED" == *:* ]]; then
-            REQUIRE_ARGS+=("$PACKAGE_TRIMMED")
-          else
-            REQUIRE_ARGS+=("${PACKAGE_TRIMMED}:@dev")
-          fi
+          add_requirement "$REQUIREMENTS_INPUT" "true"
         fi
 
         if [[ "${#REQUIRE_ARGS[@]}" -eq 0 ]]; then
@@ -422,7 +446,7 @@ runs:
         DEV_DEPS=$(jq -r '.["require-dev"] | to_entries | map("\(.key):\(.value)") | join(" ")' ../composer.json)
 
         if [ -n "$DEV_DEPS" ]; then
-          composer require --dev --prefer-lowest $DEV_DEPS --no-interaction --no-progress
+          composer require --dev $DEV_DEPS --no-interaction --no-progress
         else
           echo "No require-dev dependencies provided"
         fi
