@@ -442,11 +442,11 @@ runs:
       working-directory: shop
       run: |
         echo "Install plugin dev dependencies"
-        
-        DEV_DEPS=$(jq -r '.["require-dev"] | to_entries | map("\(.key):\(.value)") | join(" ")' ../composer.json)
 
-        if [ -n "$DEV_DEPS" ]; then
-          composer require --dev $DEV_DEPS --no-interaction --no-progress
+        mapfile -t DEV_DEPS < <(jq -r '.["require-dev"] // {} | to_entries | map("\(.key):\(.value)") | .[]' ../composer.json)
+
+        if [[ "${#DEV_DEPS[@]}" -gt 0 ]]; then
+          composer require --dev "${DEV_DEPS[@]}" --no-interaction --no-progress
         else
           echo "No require-dev dependencies provided"
         fi
